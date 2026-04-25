@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>career-ops · pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..800&family=Albert+Sans:ital,wght@0,300..700;1,300..700&family=Departure+Mono&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --hue: 60;
+    --bg:           oklch(0.165 0.012 var(--hue));
+    --bg-deep:      oklch(0.135 0.010 var(--hue));
+    --surface:      oklch(0.215 0.014 var(--hue));
+    --surface-2:    oklch(0.255 0.016 var(--hue));
+    --surface-hi:   oklch(0.305 0.018 var(--hue));
+    --line:         oklch(0.305 0.014 var(--hue));
+    --line-soft:    oklch(0.245 0.012 var(--hue));
+    --ink:          oklch(0.955 0.008 80);
+    --ink-2:        oklch(0.760 0.012 70);
+    --ink-3:        oklch(0.560 0.010 65);
+    --ink-4:        oklch(0.420 0.010 65);
+
+    --ember:        oklch(0.745 0.180 55);
+    --ember-deep:   oklch(0.620 0.190 50);
+    --ember-soft:   oklch(0.745 0.180 55 / 0.14);
+
+    --sage:         oklch(0.795 0.110 145);
+    --amber:        oklch(0.820 0.140 85);
+    --oxblood:      oklch(0.620 0.150 25);
+    --slate:        oklch(0.640 0.025 240);
+
+    --r-sm: 3px;
+    --r-md: 5px;
+    --r-lg: 8px;
+
+    --display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --body:    "Albert Sans", ui-sans-serif, system-ui, sans-serif;
+    --mono:    "Departure Mono", ui-monospace, "JetBrains Mono", monospace;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { color-scheme: dark; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(1200px 600px at 80% -200px, oklch(0.28 0.04 55 / 0.18), transparent 60%),
+      radial-gradient(900px 500px at -100px 100%, oklch(0.24 0.02 70 / 0.20), transparent 60%);
+  }
+
+  ::selection { background: var(--ember-soft); color: var(--ink); }
+
+  /* ────────── App shell ────────── */
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr 380px;
+    grid-template-rows: 48px 1fr 36px;
+    grid-template-areas:
+      "topbar topbar topbar"
+      "nav    main   detail"
+      "cmd    cmd    cmd";
+    height: 100vh;
+    min-height: 760px;
+  }
+
+  /* ────────── Top status bar ────────── */
+  .topbar {
+    grid-area: topbar;
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(to bottom, var(--bg-deep), var(--bg));
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .topbar > * { display: flex; align-items: center; padding: 0 var(--space-4); border-right: 1px solid var(--line-soft); white-space: nowrap; }
+  .topbar > *:last-child { border-right: 0; }
+  .topbar .brand {
+    gap: 10px;
+    color: var(--ink);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    width: 220px;
+  }
+  .brand-mark {
+    width: 14px; height: 14px;
+    display: inline-block; position: relative;
+    background: var(--ember);
+    clip-path: polygon(0 0, 100% 0, 100% 60%, 60% 60%, 60% 100%, 0 100%);
+  }
+  .topbar .stat { gap: 8px; color: var(--ink-2); }
+  .topbar .stat b { color: var(--ink); font-weight: 400; }
+  .topbar .stat .num { color: var(--ink); font-size: 12px; }
+  .topbar .stat .delta-up { color: var(--sage); }
+  .topbar .stat .delta-dn { color: var(--oxblood); }
+  .topbar .live { gap: 8px; }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 0 0 var(--ember); animation: pulse 1.8s cubic-bezier(.4,0,.6,1) infinite; }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 oklch(from var(--ember) l c h / 0.55); }
+    70%  { box-shadow: 0 0 0 8px oklch(from var(--ember) l c h / 0); }
+    100% { box-shadow: 0 0 0 0 oklch(from var(--ember) l c h / 0); }
+  }
+  .topbar .clock { margin-left: auto; color: var(--ink-2); }
+  .topbar .clock b { color: var(--ink); }
+
+  /* ────────── Left nav ────────── */
+  nav.rail {
+    grid-area: nav;
+    border-right: 1px solid var(--line);
+    background: var(--bg-deep);
+    display: flex; flex-direction: column;
+    padding: var(--space-5) 0 var(--space-4);
+  }
+  .rail .group { padding: 0 var(--space-4) var(--space-2); }
+  .rail .group h6 {
+    margin: 0 0 var(--space-2);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .rail a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px;
+    margin: 1px calc(var(--space-4) - 10px);
+    text-decoration: none;
+    color: var(--ink-2);
+    font-size: 13px;
+    border-radius: var(--r-md);
+    position: relative;
+  }
+  .rail a:hover { color: var(--ink); background: var(--surface); }
+  .rail a.is-active {
+    color: var(--ink);
+    background: var(--surface-2);
+  }
+  .rail a.is-active::before {
+    content: "";
+    position: absolute;
+    left: -1px; top: 9px; bottom: 9px;
+    width: 2px; background: var(--ember); border-radius: 2px;
+  }
+  .rail a .ico {
+    width: 16px; height: 16px; display: inline-grid; place-items: center;
+    color: var(--ink-3);
+  }
+  .rail a.is-active .ico { color: var(--ember); }
+  .rail a .badge {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+  .rail a.is-active .badge { color: var(--ember); background: var(--ember-soft); }
+  .rail .sep { height: 1px; background: var(--line-soft); margin: var(--space-4) var(--space-4); }
+  .rail .who {
+    margin-top: auto;
+    margin: auto var(--space-3) 0;
+    padding: var(--space-3);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface);
+  }
+  .rail .who .av {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--surface-hi), var(--surface));
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  }
+  .rail .who .who-name { font-size: 12px; color: var(--ink); }
+  .rail .who .who-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+
+  /* ────────── Main column ────────── */
+  main {
+    grid-area: main;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--line);
+  }
+
+  /* Header / hero strip */
+  .head {
+    padding: var(--space-6) var(--space-6) var(--space-4);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .crumbs {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: var(--space-3);
+  }
+  .crumbs span { color: var(--ink-2); }
+  .crumbs .sep { color: var(--ink-4); padding: 0 6px; }
+  h1.title {
+    font-family: var(--display);
+    font-variation-settings: "wdth" 95, "wght" 600, "opsz" 60;
+    font-size: clamp(34px, 4.2vw, 52px);
+    line-height: 0.96;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--ink);
+  }
+  h1.title em {
+    font-style: normal;
+    color: var(--ember);
+    font-variation-settings: "wdth" 95, "wght" 700, "opsz" 60;
+  }
+  .lede {
+    margin: 10px 0 0;
+    color: var(--ink-2);
+    max-width: 62ch;
+    font-size: 14px;
+  }
+
+  /* Hero metrics row */
+  .metrics {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 0;
+    margin-top: var(--space-6);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .metric {
+    padding: var(--space-4) var(--space-5);
+    border-right: 1px solid var(--line-soft);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .metric:last-child { border-right: 0; }
+  .metric .lbl {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .metric .val {
+    font-family: var(--display);
+    font-variation-settings: "wdth" 90, "wght" 600;
+    font-size: 30px; line-height: 1; letter-spacing: -0.01em;
+    color: var(--ink);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .metric .val small {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em;
+  }
+  .metric .delta {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+    color: var(--sage);
+  }
+  .metric .delta.dn { color: var(--oxblood); }
+  /* sparkbars — semantic, not decoration */
+  .spark {
+    display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: 2px;
+  }
+  .spark span {
+    width: 4px; background: oklch(0.40 0.02 60);
+  }
+  .spark span.hi { background: var(--ember); }
+
+  /* Toolbar above table */
+  .toolbar {
+    display: flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .seg {
+    display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden;
+    background: var(--bg-deep);
+  }
+  .seg button {
+    appearance: none; background: transparent; border: 0; color: var(--ink-2);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 6px 12px; cursor: pointer;
+    border-right: 1px solid var(--line-soft);
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button.is-on { background: var(--surface-2); color: var(--ink); }
+  .toolbar .search {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 6px 10px;
+    width: 280px;
+  }
+  .toolbar .search input {
+    flex: 1; appearance: none; background: transparent; border: 0; color: var(--ink);
+    font-family: var(--body); font-size: 13px; outline: none;
+  }
+  .toolbar .search .kbd {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
+  }
+  .btn {
+    appearance: none; cursor: pointer;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--ink);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 6px 12px; border-radius: var(--r-md);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { background: var(--surface-hi); }
+  .btn.primary { background: var(--ember); color: oklch(0.18 0.06 55); border-color: var(--ember); font-weight: 600; }
+  .btn.primary:hover { background: oklch(from var(--ember) calc(l + 0.04) c h); }
+  .btn.ghost { background: transparent; color: var(--ink-2); }
+
+  /* ────────── Applications table ────────── */
+  .table-wrap { flex: 1; overflow: auto; padding: var(--space-2) 0 var(--space-6); }
+  table.apps {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 13px;
+  }
+  table.apps thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 400;
+    padding: var(--space-3) var(--space-4);
+  }
+  table.apps thead th:first-child { padding-left: var(--space-6); }
+  table.apps thead th:last-child  { padding-right: var(--space-6); }
+  table.apps tbody td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: middle;
+  }
+  table.apps tbody td:first-child { padding-left: var(--space-6); }
+  table.apps tbody td:last-child  { padding-right: var(--space-6); }
+  table.apps tbody tr { cursor: pointer; }
+  table.apps tbody tr:hover { background: oklch(from var(--surface) l c h / 0.55); }
+  table.apps tbody tr.is-selected {
+    background: oklch(from var(--ember) l c h / 0.06);
+    box-shadow: inset 2px 0 0 var(--ember);
+  }
+  table.apps tbody tr.is-selected td:first-child { color: var(--ink); }
+  .id { font-family: var(--mono); color: var(--ink-3); font-size: 12px; letter-spacing: 0.04em; }
+  .co { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--surface-hi);
+    display: grid; place-items: center;
+    font-family: var(--display); font-size: 13px; font-weight: 700;
+    color: var(--ink-2); border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .logo.l-anth { background: linear-gradient(135deg, oklch(0.32 0.08 55), oklch(0.22 0.04 55)); color: var(--ember); }
+  .logo.l-oai  { background: linear-gradient(135deg, oklch(0.30 0.04 145), oklch(0.20 0.02 145)); color: oklch(0.85 0.12 145); }
+  .logo.l-rt   { background: linear-gradient(135deg, oklch(0.30 0.04 240), oklch(0.20 0.02 240)); color: oklch(0.80 0.10 240); }
+  .logo.l-n8n  { background: linear-gradient(135deg, oklch(0.30 0.04 25),  oklch(0.20 0.02 25));  color: oklch(0.80 0.12 25); }
+  .logo.l-el   { background: linear-gradient(135deg, oklch(0.30 0.04 305), oklch(0.20 0.02 305)); color: oklch(0.82 0.10 305); }
+  .logo.l-rep  { background: linear-gradient(135deg, oklch(0.30 0.04 200), oklch(0.20 0.02 200)); color: oklch(0.82 0.10 200); }
+  .logo.l-vc   { background: linear-gradient(135deg, oklch(0.30 0.02 80),  oklch(0.20 0.02 80));  color: oklch(0.85 0.06 80); }
+  .logo.l-cur  { background: linear-gradient(135deg, oklch(0.30 0.04 320), oklch(0.20 0.02 320)); color: oklch(0.82 0.10 320); }
+  .co-name { display: flex; flex-direction: column; gap: 1px; }
+  .co-name b { font-weight: 600; color: var(--ink); }
+  .co-name span { font-size: 11px; color: var(--ink-3); font-family: var(--mono); letter-spacing: 0.04em; }
+  .role { color: var(--ink); }
+  .loc  { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+
+  /* score */
+  .score { display: flex; align-items: center; gap: 10px; }
+  .score-num {
+    font-family: var(--mono); font-size: 13px; color: var(--ink); width: 38px; letter-spacing: 0.03em;
+  }
+  .score-bar { display: flex; gap: 2px; }
+  .score-bar i {
+    width: 8px; height: 14px; background: oklch(0.30 0.012 60); display: block;
+  }
+  .score[data-score="48"] .score-bar i:nth-child(-n+5) { background: var(--sage); }
+  .score[data-score="48"] .score-bar i:nth-child(5)    { background: oklch(from var(--sage) l c h / 0.55); }
+  .score[data-score="46"] .score-bar i:nth-child(-n+5) { background: var(--sage); }
+  .score[data-score="46"] .score-bar i:nth-child(5)    { background: oklch(from var(--sage) l c h / 0.30); }
+  .score[data-score="42"] .score-bar i:nth-child(-n+4) { background: var(--sage); }
+  .score[data-score="42"] .score-bar i:nth-child(4)    { background: oklch(from var(--sage) l c h / 0.55); }
+  .score[data-score="38"] .score-bar i:nth-child(-n+4) { background: var(--amber); }
+  .score[data-score="34"] .score-bar i:nth-child(-n+3) { background: var(--amber); }
+  .score[data-score="34"] .score-bar i:nth-child(4)    { background: oklch(from var(--amber) l c h / 0.4); }
+  .score[data-score="28"] .score-bar i:nth-child(-n+3) { background: var(--oxblood); }
+  .score[data-score="22"] .score-bar i:nth-child(-n+2) { background: var(--oxblood); }
+  .score[data-score="00"] .score-bar i { background: oklch(0.30 0.012 60); }
+
+  /* status pill */
+  .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line);
+    color: var(--ink-2);
+  }
+  .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); }
+  .status.s-eval   { color: var(--amber); border-color: oklch(from var(--amber) l c h / 0.35); }
+  .status.s-eval::before { background: var(--amber); }
+  .status.s-applied { color: var(--ember); border-color: oklch(from var(--ember) l c h / 0.45); background: var(--ember-soft); }
+  .status.s-applied::before { background: var(--ember); }
+  .status.s-interview { color: var(--sage); border-color: oklch(from var(--sage) l c h / 0.35); }
+  .status.s-interview::before { background: var(--sage); }
+  .status.s-offer { color: var(--bg-deep); background: var(--sage); border-color: var(--sage); font-weight: 700; }
+  .status.s-offer::before { background: var(--bg-deep); }
+  .status.s-rejected { color: var(--oxblood); border-color: oklch(from var(--oxblood) l c h / 0.35); }
+  .status.s-rejected::before { background: var(--oxblood); }
+  .status.s-skip { color: var(--ink-3); }
+  .status.s-running { color: var(--ember); border-color: oklch(from var(--ember) l c h / 0.40); }
+  .status.s-running::before { background: var(--ember); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0.25; } }
+
+  .date { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; white-space: nowrap; }
+  .pdf  { display: inline-grid; place-items: center; width: 18px; height: 18px; }
+  .pdf.has { color: var(--sage); }
+  .pdf.no  { color: var(--ink-4); }
+
+  /* Running row spinner */
+  .runrow td { background: oklch(from var(--ember) l c h / 0.04); }
+  .runprog {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 11px; color: var(--ember);
+  }
+  .runprog .bar {
+    width: 110px; height: 3px; background: var(--surface-hi); border-radius: 2px; overflow: hidden; position: relative;
+  }
+  .runprog .bar::after {
+    content: ""; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
+    background: var(--ember); animation: slide 1.4s ease-in-out infinite;
+  }
+  @keyframes slide { 50% { left: 100%; } 100% { left: 100%; } }
+
+  /* ────────── Detail panel ────────── */
+  aside.detail {
+    grid-area: detail;
+    background: var(--bg-deep);
+    overflow: auto;
+    display: flex; flex-direction: column;
+  }
+  .detail .dh {
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .detail .dh .id-line {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); display: flex; align-items: center; gap: 10px;
+  }
+  .detail .dh .id-line .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--ink-4); }
+  .detail .dh h3 {
+    font-family: var(--display);
+    font-variation-settings: "wdth" 95, "wght" 600;
+    font-size: 26px; line-height: 1.05; letter-spacing: -0.015em;
+    margin: 10px 0 4px;
+  }
+  .detail .dh .at { color: var(--ink-2); font-size: 13px; }
+  .detail .dh .at b { color: var(--ink); font-weight: 600; }
+
+  .verdict {
+    display: flex; align-items: stretch; gap: 0;
+    margin: var(--space-4) 0 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .verdict .num {
+    padding: var(--space-3) var(--space-4);
+    background: oklch(from var(--sage) l c h / 0.10);
+    color: var(--sage);
+    font-family: var(--display); font-variation-settings: "wdth" 88, "wght" 700;
+    font-size: 36px; line-height: 1; letter-spacing: -0.02em;
+    display: grid; place-items: center; min-width: 92px;
+    border-right: 1px solid var(--line);
+  }
+  .verdict .num small {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.10em; color: var(--ink-3);
+    display: block; margin-top: 6px; text-align: center; font-variation-settings: normal;
+  }
+  .verdict .verdict-body { padding: var(--space-3) var(--space-4); flex: 1; }
+  .verdict .rec {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--sage); margin-bottom: 4px;
+  }
+  .verdict p { margin: 0; font-size: 13px; color: var(--ink-2); }
+
+  .detail .section {
+    padding: var(--space-5);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .detail .section h4 {
+    margin: 0 0 var(--space-3);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 400;
+  }
+
+  /* score breakdown */
+  .breakdown { display: flex; flex-direction: column; gap: 10px; }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 56px 28px;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .row .label { color: var(--ink-2); font-size: 12px; }
+  .row .meter { height: 4px; background: var(--surface); border-radius: 2px; overflow: hidden; position: relative; }
+  .row .meter span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink-2); }
+  .row .meter span.s-hi { background: var(--sage); }
+  .row .meter span.s-md { background: var(--amber); }
+  .row .meter span.s-lo { background: var(--oxblood); }
+  .row .v { font-family: var(--mono); font-size: 11px; color: var(--ink); text-align: right; letter-spacing: 0.03em; }
+
+  .legit {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .tier {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
+    padding: 4px 8px; border-radius: 3px;
+    background: var(--surface); color: var(--ink-3);
+  }
+  .tier.is-on { background: var(--ember-soft); color: var(--ember); }
+
+  .summary { color: var(--ink); font-size: 13px; line-height: 1.55; }
+  .summary p { margin: 0 0 10px; }
+  .summary p:last-child { margin: 0; }
+
+  .actions {
+    padding: var(--space-4) var(--space-5);
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2);
+    border-top: 1px solid var(--line-soft);
+    background: oklch(0.18 0.012 60);
+    margin-top: auto;
+  }
+
+  /* ────────── Command bar ────────── */
+  .cmd {
+    grid-area: cmd;
+    border-top: 1px solid var(--line);
+    background: var(--bg-deep);
+    display: flex; align-items: center; gap: var(--space-5);
+    padding: 0 var(--space-6);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+    color: var(--ink-3);
+  }
+  .cmd .grp { display: inline-flex; align-items: center; gap: 8px; }
+  .cmd .k {
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    background: var(--surface);
+    color: var(--ink-2);
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 10px;
+  }
+  .cmd .grp:hover { color: var(--ink); }
+  .cmd .right { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-4); }
+  .cmd .ok { color: var(--sage); }
+
+  /* tiny icon system */
+  .i { width: 14px; height: 14px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-pipeline" viewBox="0 0 16 16"><path d="M2 4h12M2 8h8M2 12h12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.2 10.2L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-report" viewBox="0 0 16 16"><path d="M3 2h7l3 3v9H3z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.5 8h5M5.5 11h5M5.5 5h2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-cv" viewBox="0 0 16 16"><rect x="3" y="2.5" width="10" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 6h5M5.5 9h5M5.5 12h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-prep" viewBox="0 0 16 16"><path d="M8 2.2l5.5 2.6v3.5c0 3.1-2.4 5.6-5.5 5.6S2.5 11.4 2.5 8.3V4.8z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pat" viewBox="0 0 16 16"><path d="M2 12L6 7l3 3 5-7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-follow" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.5V8l2.4 2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-tracker" viewBox="0 0 16 16"><path d="M2 8c2-3 4-3 6 0s4 3 6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-pdf" viewBox="0 0 16 16"><path d="M4 2.5h6l3 3v8H4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 8h4M6 10.5h4M6 5.5h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.2 10.2L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      career-ops
+    </div>
+    <div class="stat">SESSION <b class="num">SF-04025</b></div>
+    <div class="stat live"><span class="pulse"></span> SCAN <b class="num">RUNNING</b></div>
+    <div class="stat">EVALUATED <b class="num">740</b><span class="delta-up">+12 / 7d</span></div>
+    <div class="stat">OFFERS <b class="num">3</b></div>
+    <div class="stat">AVG SCORE <b class="num">3.84</b><span class="delta-up">+0.21</span></div>
+    <div class="clock">2026-04-25 · <b>14:07 EDT</b></div>
+  </header>
+
+  <!-- LEFT NAV -->
+  <nav class="rail">
+    <div class="group">
+      <h6>Workspace</h6>
+    </div>
+    <a href="#" class="is-active">
+      <span class="ico"><svg class="i"><use href="#i-pipeline"/></svg></span>
+      Pipeline
+      <span class="badge">42</span>
+    </a>
+    <a href="#">
+      <span class="ico"><svg class="i"><use href="#i-scan"/></svg></span>
+      Portal scan
+      <span class="badge">12 new</span>
+    </a>
+    <a href="#">
+      <span class="ico"><svg class="i"><use href="#i-report"/></svg></span>
+      Reports
+    </a>
+    <a href="#">
+      <span class="ico"><svg class="i"><use href="#i-tracker"/></svg></span>
+      Tracker
+    </a>
+
+    <div class="sep"></div>
+
+    <div class="group"><h6>Material</h6></div>
+    <a href="#">
+      <span class="ico"><svg class="i"><use href="#i-cv"/></svg></span>
+      CV &amp; proof points
+    </a>
+    <a href="#">
+      <span class="ico"><svg class="i"><use href="#i-prep"/></svg></span>
+      Interview prep
+      <span class="badge">7</span>
+    </a>
+    <a href="#">
+      <span class="ico"><svg class="i"><use href="#i-pat"/></svg></span>
+      Patterns
+    </a>
+    <a href="#">
+      <span class="ico"><svg class="i"><use href="#i-follow"/></svg></span>
+      Follow-ups
+      <span class="badge">3</span>
+    </a>
+
+    <div class="who">
+      <div class="av">SF</div>
+      <div>
+        <div class="who-name">Stephen Fang</div>
+        <div class="who-meta">HEAD-OF-AI · NYC</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main>
+    <div class="head">
+      <div class="crumbs"><span>Workspace</span><span class="sep">/</span><span>Pipeline</span><span class="sep">/</span>All applications</div>
+      <h1 class="title">Forty-two roles in flight, <em>three worth your week.</em></h1>
+      <p class="lede">A filter, not a feed. Below the 4.0 line is noise — career-ops will tell you so. Sort, evaluate, and let the numbers earn your attention.</p>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="lbl">
+            <span>Active pipeline</span>
+            <span style="color:var(--ink-4)">·</span>
+            <span style="color:var(--ink-3)">last 30d</span>
+          </div>
+          <div class="val">42<small>roles</small></div>
+          <div class="spark" aria-hidden="true">
+            <span style="height:30%"></span><span style="height:55%"></span><span style="height:40%"></span>
+            <span style="height:65%"></span><span style="height:50%"></span><span style="height:75%"></span>
+            <span style="height:60%"></span><span style="height:85%" class="hi"></span><span style="height:90%" class="hi"></span>
+            <span style="height:70%"></span><span style="height:80%" class="hi"></span><span style="height:95%" class="hi"></span>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="lbl"><span>Avg score</span></div>
+          <div class="val">3.84<small>/ 5.0</small></div>
+          <div class="delta">▲ +0.21 vs last batch</div>
+        </div>
+        <div class="metric">
+          <div class="lbl"><span>Offers</span></div>
+          <div class="val">3<small>active</small></div>
+          <div class="delta">2 negotiating · 1 pending</div>
+        </div>
+        <div class="metric">
+          <div class="lbl"><span>Response rate</span></div>
+          <div class="val">28<small>%</small></div>
+          <div class="delta dn">▼ -3.4pp · 14 silent</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="seg" role="tablist">
+        <button class="is-on">All <span style="color:var(--ink-4)">·42</span></button>
+        <button>Evaluated <span style="color:var(--ink-4)">·11</span></button>
+        <button>Applied <span style="color:var(--ink-4)">·18</span></button>
+        <button>Interview <span style="color:var(--ink-4)">·6</span></button>
+        <button>Offer <span style="color:var(--ink-4)">·3</span></button>
+        <button>Closed <span style="color:var(--ink-4)">·4</span></button>
+      </div>
+      <button class="btn ghost">Sort <svg class="i"><use href="#i-arrow"/></svg></button>
+      <div class="search">
+        <svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+        <input placeholder="Filter by company, role, location…" />
+        <span class="kbd">/</span>
+      </div>
+      <button class="btn"><svg class="i"><use href="#i-plus"/></svg> Paste URL</button>
+      <button class="btn primary">Run scan</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <table class="apps">
+        <thead>
+          <tr>
+            <th style="width:46px">#</th>
+            <th>Company</th>
+            <th>Role</th>
+            <th style="width:120px">Score</th>
+            <th style="width:130px">Status</th>
+            <th style="width:90px">Date</th>
+            <th style="width:34px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="runrow">
+            <td class="id">— —</td>
+            <td><div class="co"><div class="logo l-cur">C</div><div class="co-name"><b>Cursor</b><span>San Francisco · Remote</span></div></div></td>
+            <td class="role">Staff AI Engineer, Agents</td>
+            <td colspan="2">
+              <div class="runprog">
+                <div class="bar"></div>
+                <span>EVAL · BLOCK 04 / 06 · level strategy</span>
+              </div>
+            </td>
+            <td class="date">···</td>
+            <td></td>
+          </tr>
+
+          <tr class="is-selected">
+            <td class="id">041</td>
+            <td><div class="co"><div class="logo l-anth">A</div><div class="co-name"><b>Anthropic</b><span>San Francisco · Hybrid</span></div></div></td>
+            <td><div class="role">Head of Applied AI, Enterprise</div><div class="loc">$320–410K · Eq · L7</div></td>
+            <td><div class="score" data-score="48"><div class="score-num">4.8</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-interview">Interview · R3</span></td>
+            <td class="date">04-23</td>
+            <td><span class="pdf has" title="PDF generated"><svg class="i"><use href="#i-check"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">040</td>
+            <td><div class="co"><div class="logo l-oai">O</div><div class="co-name"><b>OpenAI</b><span>San Francisco · On-site</span></div></div></td>
+            <td><div class="role">Applied AI Lead, Platform</div><div class="loc">$300–390K · Eq · IC6</div></td>
+            <td><div class="score" data-score="42"><div class="score-num">4.2</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-applied">Applied</span></td>
+            <td class="date">04-22</td>
+            <td><span class="pdf has"><svg class="i"><use href="#i-check"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">039</td>
+            <td><div class="co"><div class="logo l-el">E</div><div class="co-name"><b>ElevenLabs</b><span>London · Remote-EU</span></div></div></td>
+            <td><div class="role">Director of Applied Research</div><div class="loc">£190–230K · Eq</div></td>
+            <td><div class="score" data-score="46"><div class="score-num">4.6</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-offer">Offer</span></td>
+            <td class="date">04-20</td>
+            <td><span class="pdf has"><svg class="i"><use href="#i-check"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">038</td>
+            <td><div class="co"><div class="logo l-rt">R</div><div class="co-name"><b>Retool</b><span>SF · Hybrid 3d</span></div></div></td>
+            <td><div class="role">Head of AI Product</div><div class="loc">$280–340K · Eq</div></td>
+            <td><div class="score" data-score="38"><div class="score-num">3.8</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-eval">Evaluated</span></td>
+            <td class="date">04-19</td>
+            <td><span class="pdf has"><svg class="i"><use href="#i-check"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">037</td>
+            <td><div class="co"><div class="logo l-n8n">N</div><div class="co-name"><b>n8n</b><span>Berlin · Remote-EU</span></div></div></td>
+            <td><div class="role">VP of AI &amp; Automation</div><div class="loc">€175–215K · Eq · DACH</div></td>
+            <td><div class="score" data-score="42"><div class="score-num">4.2</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-applied">Applied</span></td>
+            <td class="date">04-17</td>
+            <td><span class="pdf has"><svg class="i"><use href="#i-check"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">036</td>
+            <td><div class="co"><div class="logo l-rep">R</div><div class="co-name"><b>Replit</b><span>SF · Remote</span></div></div></td>
+            <td><div class="role">Head of Agents Product</div><div class="loc">$260–310K · Eq</div></td>
+            <td><div class="score" data-score="34"><div class="score-num">3.4</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-skip">Skip · low fit</span></td>
+            <td class="date">04-15</td>
+            <td><span class="pdf no"><svg class="i"><use href="#i-x"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">035</td>
+            <td><div class="co"><div class="logo l-vc">V</div><div class="co-name"><b>Vercel</b><span>SF · Remote-NA</span></div></div></td>
+            <td><div class="role">Staff PM, AI SDK</div><div class="loc">$240–290K · Eq</div></td>
+            <td><div class="score" data-score="42"><div class="score-num">4.2</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-rejected">Rejected · stage 2</span></td>
+            <td class="date">04-12</td>
+            <td><span class="pdf has"><svg class="i"><use href="#i-check"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">034</td>
+            <td><div class="co"><div class="logo l-anth">A</div><div class="co-name"><b>Anthropic</b><span>NYC · Hybrid</span></div></div></td>
+            <td><div class="role">Forward Deployed Engineer</div><div class="loc">$260–320K · Eq · L6</div></td>
+            <td><div class="score" data-score="46"><div class="score-num">4.6</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-interview">Interview · R1</span></td>
+            <td class="date">04-10</td>
+            <td><span class="pdf has"><svg class="i"><use href="#i-check"/></svg></span></td>
+          </tr>
+
+          <tr>
+            <td class="id">033</td>
+            <td><div class="co"><div class="logo l-oai">O</div><div class="co-name"><b>OpenAI</b><span>SF · On-site</span></div></div></td>
+            <td><div class="role">Eng Manager, Agents Platform</div><div class="loc">$340–410K · Eq</div></td>
+            <td><div class="score" data-score="22"><div class="score-num">2.2</div><div class="score-bar"><i></i><i></i><i></i><i></i><i></i></div></div></td>
+            <td><span class="status s-skip">Skip · scope mismatch</span></td>
+            <td class="date">04-08</td>
+            <td><span class="pdf no"><svg class="i"><use href="#i-x"/></svg></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- DETAIL PANEL -->
+  <aside class="detail">
+    <div class="dh">
+      <div class="id-line">
+        <span>Report</span><span class="dot"></span><span>#041</span><span class="dot"></span><span>2026-04-23</span>
+      </div>
+      <h3>Head of Applied AI, Enterprise</h3>
+      <div class="at">at <b>Anthropic</b> · San Francisco · Hybrid · L7</div>
+
+      <div class="verdict">
+        <div class="num">4.8<small>/ 5.0</small></div>
+        <div class="verdict-body">
+          <div class="rec">Strongly recommend</div>
+          <p>Top of pipeline. Proof points align on scaled deployments + agent eval. Compensation band fits target.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Score breakdown · A–F + G</h4>
+      <div class="breakdown">
+        <div class="row"><div class="label">A · Role &amp; scope clarity</div><div class="meter"><span class="s-hi" style="width:96%"></span></div><div class="v">4.8</div></div>
+        <div class="row"><div class="label">B · CV match (proof points)</div><div class="meter"><span class="s-hi" style="width:94%"></span></div><div class="v">4.7</div></div>
+        <div class="row"><div class="label">C · Level &amp; trajectory</div><div class="meter"><span class="s-hi" style="width:98%"></span></div><div class="v">4.9</div></div>
+        <div class="row"><div class="label">D · Compensation fit</div><div class="meter"><span class="s-hi" style="width:90%"></span></div><div class="v">4.5</div></div>
+        <div class="row"><div class="label">E · Personal fit (location, life)</div><div class="meter"><span class="s-md" style="width:78%"></span></div><div class="v">3.9</div></div>
+        <div class="row"><div class="label">F · Interview readiness</div><div class="meter"><span class="s-hi" style="width:96%"></span></div><div class="v">4.8</div></div>
+        <div class="row"><div class="label">G · Posting legitimacy</div><div class="meter"><span class="s-hi" style="width:100%"></span></div><div class="v">5.0</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Legitimacy tier</h4>
+      <div class="legit">
+        <span class="tier is-on">Verified</span>
+        <span class="tier">Probable</span>
+        <span class="tier">Stale</span>
+        <span class="tier">Ghost</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Why this scored high</h4>
+      <div class="summary">
+        <p>Listing maps directly to your <b>Block B</b> proof points: 740-offer eval pipeline, agentic Playwright deployment, and Claude API tooling at scale. Compensation midpoint clears your $310K target by 11%.</p>
+        <p>Caveat — hybrid 2d/wk in SF. Your <b>profile.yml</b> flags this as yellow. Contact warm intro via <i>Liane R.</i> (referral) before applying cold.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Story bank · best STAR+R</h4>
+      <div class="summary">
+        <p style="font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.04em">→ "PIPELINE-740" · "AGENT-EVAL-FRAMEWORK" · "BATCH-PARALLEL-WORKERS"</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn"><svg class="i"><use href="#i-pdf"/></svg> Open PDF</button>
+      <button class="btn primary">Apply <svg class="i"><use href="#i-arrow"/></svg></button>
+    </div>
+  </aside>
+
+  <!-- COMMAND BAR -->
+  <footer class="cmd">
+    <span class="grp"><span class="k">⌘K</span> Command</span>
+    <span class="grp"><span class="k">/</span> Filter</span>
+    <span class="grp"><span class="k">J</span> <span class="k">K</span> Move</span>
+    <span class="grp"><span class="k">E</span> Evaluate</span>
+    <span class="grp"><span class="k">A</span> Apply</span>
+    <span class="grp"><span class="k">P</span> Generate PDF</span>
+    <span class="grp"><span class="k">R</span> Report</span>
+    <span class="right">
+      <span class="grp"><span class="ok">●</span> claude-opus-4-7</span>
+      <span class="grp">v1.4.2</span>
+    </span>
+  </footer>
+
+</div>
+</body>
+</html>
