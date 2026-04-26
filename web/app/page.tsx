@@ -1,3 +1,7 @@
-export default function Home() {
-  return <main style={{ padding: 24 }}>career-ops web — scaffolded</main>;
+import { listApplications } from "@/lib/data/sqlite";
+import { PipelineView } from "@/components/PipelineView";
+
+export default async function PipelinePage() {
+  const apps = listApplications({});
+  return <PipelineView initialApplications={apps} />;
 }
