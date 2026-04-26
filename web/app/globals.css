@@ -170,6 +170,33 @@
     text-align: center;
   }
   .rail-link.is-active .badge { color: var(--ember); background: var(--ember-soft); }
+  .rail-link .badge.badge-live {
+    color: var(--ember);
+    background: var(--ember-soft);
+    box-shadow: 0 0 0 0 var(--ember);
+    animation: pulse-badge 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-badge {
+    0%, 100% { box-shadow: 0 0 0 0 oklch(0.745 0.180 55 / 0.5); }
+    50%      { box-shadow: 0 0 0 4px oklch(0.745 0.180 55 / 0); }
+  }
+
+  /* Runs page extras */
+  .runs-page { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  .runs-page .head { padding: 32px 32px 16px; border-bottom: 1px solid var(--line-soft); }
+  .report-link {
+    font-family: var(--font-mono), monospace;
+    font-size: 12px;
+    color: var(--ember);
+    letter-spacing: 0.04em;
+  }
+  .report-link:hover { text-decoration: underline; }
+  .run-err {
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    color: var(--oxblood);
+    cursor: help;
+  }
 
   main {
     grid-area: main;
