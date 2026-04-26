@@ -31,6 +31,11 @@ modes/_profile.md
 node_modules/
 bun.lock
 
+# Web app
+web/node_modules/
+web/.next/
+web/.cache/
+
 # OS
 .DS_Store
 *.mov
