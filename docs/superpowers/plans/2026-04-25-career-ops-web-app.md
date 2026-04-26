@@ -63,6 +63,7 @@ All commands assume CWD is `<repo-root>/web` unless noted otherwise.
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.0",
     "@types/react": "19.0.0",
