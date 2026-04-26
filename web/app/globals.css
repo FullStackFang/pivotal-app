@@ -198,6 +198,91 @@
     cursor: help;
   }
 
+  .run-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .run-actions .btn {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+  .btn.danger {
+    background: var(--oxblood-soft);
+    border-color: var(--oxblood);
+    color: var(--oxblood);
+  }
+  .btn.danger:hover { background: var(--oxblood); color: var(--ink); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .dup-banner > td {
+    background: var(--ember-tint);
+    border-bottom: 1px solid var(--line-soft);
+    padding: 12px 32px !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .dup-banner code {
+    font-family: var(--font-mono), monospace;
+    color: var(--ember);
+    background: transparent;
+    padding: 0;
+  }
+  .dup-actions { display: flex; gap: 8px; }
+
+  .log-row > td {
+    background: var(--bg-deep);
+    padding: 0 !important;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .log-drawer {
+    padding: 16px 32px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .log-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: var(--font-mono), monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .log-meta .run-id { color: var(--ink-2); }
+  .log-meta .streaming {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ember);
+  }
+  .log-meta .streaming .pulse { width: 6px; height: 6px; }
+  .log-meta .static-tail { color: var(--ink-3); }
+  .log-drawer .log-tail {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    color: var(--ink-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow: auto;
+    line-height: 1.5;
+  }
+  .log-drawer .log-tail > div { min-height: 1em; }
+  .log-drawer .muted { color: var(--ink-4); font-style: italic; }
+  .log-drawer .error { color: var(--oxblood); font-size: 12px; }
+
   main {
     grid-area: main;
     display: flex;

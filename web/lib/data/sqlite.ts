@@ -4,7 +4,7 @@ import path from "node:path";
 import { SQLITE_FILE } from "../paths.js";
 import type { Application, Report, AppFilter } from "../types.js";
 
-const SCHEMA_VERSION = "1";
+const SCHEMA_VERSION = "2";
 let db: Database.Database | null = null;
 
 export function openDb(file: string = SQLITE_FILE): Database.Database {
@@ -63,13 +63,26 @@ function ensureSchema(d: Database.Database) {
       finished_at INTEGER,
       result_num INTEGER,
       log_path TEXT NOT NULL,
-      error_msg TEXT
+      error_msg TEXT,
+      pid INTEGER
     );
   `);
 
   const cur = d.prepare("SELECT value FROM meta WHERE key='schema_version'").get() as { value: string } | undefined;
-  if (!cur) d.prepare("INSERT INTO meta(key,value) VALUES ('schema_version', ?)").run(SCHEMA_VERSION);
-  else if (cur.value !== SCHEMA_VERSION) throw new Error(`Unexpected schema version ${cur.value}`);
+  if (!cur) {
+    d.prepare("INSERT INTO meta(key,value) VALUES ('schema_version', ?)").run(SCHEMA_VERSION);
+  } else if (cur.value === SCHEMA_VERSION) {
+    // already current, no-op
+  } else if (cur.value === "1") {
+    // v1 -> v2: add pid column to eval_runs
+    const cols = d.prepare("PRAGMA table_info(eval_runs)").all() as Array<{ name: string }>;
+    if (!cols.some(c => c.name === "pid")) {
+      d.exec("ALTER TABLE eval_runs ADD COLUMN pid INTEGER;");
+    }
+    d.prepare("UPDATE meta SET value = ? WHERE key='schema_version'").run(SCHEMA_VERSION);
+  } else {
+    throw new Error(`Unexpected schema version ${cur.value}`);
+  }
 }
 
 const UPSERT_APP = `
@@ -163,16 +176,17 @@ export interface EvalRun {
   resultNum: number | null;
   logPath: string;
   errorMsg: string | null;
+  pid: number | null;
 }
 
 export function insertEvalRun(r: {
-  id: string; url: string; logPath: string;
+  id: string; url: string; logPath: string; pid: number | null;
 }): void {
   getDbInternal().prepare(`
-    INSERT INTO eval_runs(id, url, status, started_at, finished_at, result_num, log_path, error_msg)
-    VALUES (@id, @url, 'running', @started_at, NULL, NULL, @log_path, NULL)
+    INSERT INTO eval_runs(id, url, status, started_at, finished_at, result_num, log_path, error_msg, pid)
+    VALUES (@id, @url, 'running', @started_at, NULL, NULL, @log_path, NULL, @pid)
   `).run({
-    id: r.id, url: r.url, log_path: r.logPath,
+    id: r.id, url: r.url, log_path: r.logPath, pid: r.pid,
     started_at: Date.now(),
   });
 }
@@ -208,25 +222,69 @@ export function listEvalRuns(filter: { status?: EvalRunStatus; limit?: number } 
     status: filter.status,
     limit: filter.limit ?? 50,
   }) as any[];
-  return rows.map(r => ({
+  return rows.map(rowToEvalRun);
+}
+
+function rowToEvalRun(r: any): EvalRun {
+  return {
     id: r.id, url: r.url, status: r.status as EvalRunStatus,
     startedAt: r.started_at, finishedAt: r.finished_at,
     resultNum: r.result_num, logPath: r.log_path, errorMsg: r.error_msg,
-  }));
+    pid: r.pid ?? null,
+  };
 }
 
-/**
- * Marks any runs left in `running` state as `failed` with a sweep message.
- * Call on server boot — anything still "running" must be from a previous
- * process that's no longer alive.
- */
-export function sweepStaleEvalRuns(): number {
-  const result = getDbInternal().prepare(`
+export function getEvalRun(id: string): EvalRun | null {
+  const row = getDbInternal().prepare("SELECT * FROM eval_runs WHERE id = ?").get(id) as any;
+  if (!row) return null;
+  return rowToEvalRun(row);
+}
+
+export function listRunningEvalRuns(): EvalRun[] {
+  return listEvalRuns({ status: "running", limit: 1000 });
+}
+
+export function markOrphanDead(id: string, errorMsg: string = "Process exited while server was offline"): void {
+  getDbInternal().prepare(`
     UPDATE eval_runs
     SET status = 'failed',
         finished_at = @now,
-        error_msg = 'Server restarted while run was active'
-    WHERE status = 'running'
-  `).run({ now: Date.now() });
-  return result.changes;
+        error_msg = @error_msg
+    WHERE id = @id AND status = 'running'
+  `).run({ id, now: Date.now(), error_msg: errorMsg });
+}
+
+/**
+ * PID-aware boot reconciliation. For each row currently marked `running`:
+ *   - If `pid` is null (legacy row from before v2 schema) → mark failed.
+ *   - If pid liveness check passes → keep as running (orphan-alive).
+ *   - Otherwise → mark failed.
+ *
+ * `isPidAlive` is injected so this module stays free of OS imports.
+ */
+export function reconcileRunsOnBoot(isPidAlive: (pid: number) => boolean): { swept: number; kept: number } {
+  let swept = 0, kept = 0;
+  const rows = listRunningEvalRuns();
+  for (const row of rows) {
+    if (row.pid === null) {
+      markOrphanDead(row.id, "Server restarted (no PID recorded)");
+      swept++;
+    } else if (isPidAlive(row.pid)) {
+      kept++;
+    } else {
+      markOrphanDead(row.id, "Process exited while server was offline");
+      swept++;
+    }
+  }
+  return { swept, kept };
+}
+
+/**
+ * Deprecated: use reconcileRunsOnBoot instead. Kept as a passthrough so
+ * older callers/tests still compile. Treats every running row as dead.
+ */
+export function sweepStaleEvalRuns(): number {
+  const rows = listRunningEvalRuns();
+  for (const row of rows) markOrphanDead(row.id, "Server restarted while run was active");
+  return rows.length;
 }

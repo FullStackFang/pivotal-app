@@ -4,26 +4,95 @@ import path from "node:path";
 import { v4 as uuid } from "uuid";
 import { CAREER_OPS_ROOT as DEFAULT_ROOT, EVAL_RUNS_DIR as DEFAULT_EVAL_RUNS_DIR } from "../paths.js";
 import { parseClaudeLine } from "./progress.js";
-import { insertEvalRun, updateEvalRun } from "../data/sqlite.js";
+import {
+  insertEvalRun,
+  updateEvalRun,
+  getEvalRun,
+  listRunningEvalRuns,
+  markOrphanDead,
+} from "../data/sqlite.js";
 import type { EvalEvent } from "../types.js";
 
-// Live in-memory registry: runId → ChildProcess. Used by future cancel UI;
-// for now lets us see what's running without scraping `ps`.
+// Live in-memory registry: runId → ChildProcess.
 const liveProcs = new Map<string, ChildProcess>();
 export function listLiveRuns(): string[] {
   return Array.from(liveProcs.keys());
 }
-export function killRun(runId: string): boolean {
+
+// Runs the user has asked to kill. The exit handler reads this set so the
+// recorded error_msg becomes "Killed by user" instead of the generic exit message.
+const pendingKills = new Set<string>();
+
+export function isPidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    // EPERM = process exists but we can't signal — still alive.
+    // ESRCH = no such process — dead.
+    return (e as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+export type KillOutcome = "killed" | "already-dead" | "not-running";
+
+export function killRun(runId: string): KillOutcome {
+  // Attached: signal the live process. Exit handler will record outcome.
   const proc = liveProcs.get(runId);
-  if (!proc) return false;
-  proc.kill("SIGTERM");
-  return true;
+  if (proc) {
+    pendingKills.add(runId);
+    try { proc.kill("SIGTERM"); } catch { /* already exited */ }
+    return "killed";
+  }
+
+  // Orphan: look up PID from DB, signal directly.
+  const run = getEvalRun(runId);
+  if (!run || run.status !== "running") return "not-running";
+
+  if (run.pid !== null && isPidAlive(run.pid)) {
+    try { process.kill(run.pid, "SIGTERM"); } catch { /* already exited */ }
+    const pid = run.pid;
+    setTimeout(() => {
+      if (isPidAlive(pid)) {
+        try { process.kill(pid, "SIGKILL"); } catch { /* nothing to kill */ }
+      }
+      // Best-effort: write the user-facing reason. markOrphanDead is a no-op
+      // if the row is no longer 'running' (e.g., if the orphan-monitor beat us to it).
+      markOrphanDead(runId, "Killed by user");
+    }, 5000);
+    return "killed";
+  }
+
+  // PID is null or already dead — the row just hasn't been reconciled yet.
+  markOrphanDead(runId, "Killed by user");
+  return "already-dead";
+}
+
+/**
+ * Background sweep that reconciles orphan-alive runs whose PID has since died.
+ * Runs every 5 seconds while the server is up.
+ */
+export function startOrphanMonitor(intervalMs: number = 5000): NodeJS.Timeout {
+  return setInterval(() => {
+    try {
+      const liveIds = new Set(listLiveRuns());
+      const running = listRunningEvalRuns();
+      for (const run of running) {
+        if (liveIds.has(run.id)) continue; // attached — its own exit handler owns lifecycle
+        if (run.pid === null || !isPidAlive(run.pid)) {
+          markOrphanDead(run.id);
+        }
+      }
+    } catch (e) {
+      console.warn("orphan-monitor tick failed:", (e as Error).message);
+    }
+  }, intervalMs);
 }
 
 function resolveRoot(): string {
   return process.env.CAREER_OPS_ROOT ?? DEFAULT_ROOT;
 }
-function resolveEvalRunsDir(): string {
+export function resolveEvalRunsDir(): string {
   return process.env.CAREER_OPS_ROOT
     ? path.join(process.env.CAREER_OPS_ROOT, "output", "eval-runs")
     : DEFAULT_EVAL_RUNS_DIR;
@@ -39,10 +108,6 @@ export function runEvaluation(url: string): {
   const logPath = path.join(evalRunsDir, `${runId}.log`);
   const logStream = fs.createWriteStream(logPath, { flags: "a" });
 
-  // Persist the run so other tabs / curls can see it.
-  try { insertEvalRun({ id: runId, url, logPath }); }
-  catch (e) { console.warn("eval_runs insert failed:", (e as Error).message); }
-
   // Pass args as an array. spawn with array args does NOT invoke a shell,
   // so the URL inside the prompt string cannot trigger any shell interpolation.
   const proc = spawn("claude", ["-p", `/career-ops ${url}`], {
@@ -50,6 +115,15 @@ export function runEvaluation(url: string): {
     env: process.env,
   });
   liveProcs.set(runId, proc);
+
+  // Persist the run AFTER spawn so we can record the OS PID. The PID is what
+  // lets a future server process detect whether this run is still alive.
+  const pid = proc.pid ?? null;
+  if (pid === null) {
+    console.warn(`[runner] spawn returned no PID for run ${runId}; orphan detection will not work for this run`);
+  }
+  try { insertEvalRun({ id: runId, url, logPath, pid }); }
+  catch (e) { console.warn("eval_runs insert failed:", (e as Error).message); }
 
   let lastReportNum: number | null = null;
 
@@ -90,11 +164,14 @@ export function runEvaluation(url: string): {
     }
   });
   const recordOutcome = (status: "complete" | "failed", errorMsg: string | null) => {
+    const wasKilled = pendingKills.delete(runId);
+    const finalErr = wasKilled ? "Killed by user" : errorMsg;
+    const finalStatus = wasKilled ? "failed" : status;
     try {
       updateEvalRun(runId, {
-        status,
+        status: finalStatus,
         resultNum: lastReportNum,
-        errorMsg,
+        errorMsg: finalErr,
       });
     } catch (e) {
       console.warn("eval_runs update failed:", (e as Error).message);

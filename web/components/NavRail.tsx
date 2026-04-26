@@ -16,7 +16,13 @@ export function NavRail({ counts }: { counts: { pipeline: number } }) {
         const res = await fetch("/api/runs?status=running");
         if (!res.ok) return;
         const data = await res.json();
-        if (!cancelled) setLiveRuns(data.runs.filter((r: { live: boolean }) => r.live).length);
+        if (!cancelled) {
+          setLiveRuns(
+            data.runs.filter((r: { viewState?: string; live?: boolean }) =>
+              r.viewState === "attached" || r.viewState === "orphan-alive" || r.live
+            ).length
+          );
+        }
       } catch {
         /* ignore */
       }

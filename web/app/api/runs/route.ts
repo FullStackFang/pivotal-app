@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { listEvalRuns, type EvalRunStatus } from "@/lib/data/sqlite";
-import { listLiveRuns } from "@/lib/agent/runner";
+import { computeViewState, liveIdSet } from "@/lib/agent/runState";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -13,13 +13,15 @@ export async function GET(req: Request) {
     : undefined;
 
   const runs = listEvalRuns({ status, limit });
-  const live = new Set(listLiveRuns());
+  const live = liveIdSet();
   return NextResponse.json({
-    runs: runs.map(r => ({
-      ...r,
-      // truth signal: even if status='running' in db, only `live=true` means
-      // the subprocess is actually attached to this server process.
-      live: live.has(r.id),
-    })),
+    runs: runs.map(r => {
+      const viewState = computeViewState(r, live);
+      return {
+        ...r,
+        viewState,
+        live: viewState === "attached", // backward compat
+      };
+    }),
   });
 }
