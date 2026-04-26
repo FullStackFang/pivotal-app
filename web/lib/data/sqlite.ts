@@ -16,6 +16,10 @@ export function openDb(file: string = SQLITE_FILE): Database.Database {
   return db;
 }
 
+export function isOpen(): boolean {
+  return db !== null;
+}
+
 function getDbInternal(): Database.Database {
   if (!db) openDb();
   return db!;
