@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getReport } from "@/lib/data/sqlite";
 import { fullIndex } from "@/lib/data/indexer";
 import ReactMarkdown from "react-markdown";
@@ -12,18 +11,23 @@ export default async function ReportPage({ params }: { params: Promise<{ num: st
   if (!report) notFound();
 
   return (
-    <div className="report-page">
-      <div className="report-meta">
-        <Link href="/" className="report-back">← Pipeline</Link>
-        <div className="report-id">Report · #{String(report.num).padStart(3, "0")}</div>
-        {report.legitimacy && <span className="report-legit">{report.legitimacy}</span>}
-        {report.url && (
-          <a href={report.url} target="_blank" rel="noreferrer" className="report-url">
-            Source ↗
-          </a>
-        )}
+    <div style={{ padding: 24, overflow: "auto" }}>
+      <div className="id-line" style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-3)" }}>
+        Report · #{String(report.num).padStart(3, "0")}
       </div>
-      <article className="markdown report-body">
+      {report.url && (
+        <p style={{ marginTop: 12 }}>
+          <a href={report.url} target="_blank" rel="noreferrer" style={{ color: "var(--ember)" }}>
+            {report.url}
+          </a>
+        </p>
+      )}
+      {report.legitimacy && (
+        <p>
+          Legitimacy: <strong>{report.legitimacy}</strong>
+        </p>
+      )}
+      <article className="markdown" style={{ marginTop: 24 }}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{report.bodyMd}</ReactMarkdown>
       </article>
     </div>
