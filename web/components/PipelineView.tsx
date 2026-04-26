@@ -14,12 +14,13 @@ export function PipelineView({ initialApplications }: { initialApplications: App
     let cancelled = false;
     const tick = async () => {
       try {
-        const res = await fetch("/api/applications");
+        const res = await fetch("/api/applications", { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = await res.json();
         if (!cancelled) setApps(data.applications);
       } catch { /* ignore */ }
     };
+    tick();
     const id = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(id); };
   }, []);

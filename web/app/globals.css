@@ -820,6 +820,47 @@
   }
   .markdown strong { color: var(--ink); font-weight: 700; }
 
+  /* Evaluate page */
+  .evaluate-page { display: flex; flex-direction: column; flex: 1; overflow: auto; }
+  .evaluate-page .head { padding: 32px 32px 16px; border-bottom: 1px solid var(--line-soft); }
+  .evaluate-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    flex-wrap: wrap;
+  }
+  .evaluate-form input {
+    flex: 1;
+    min-width: 320px;
+    max-width: 520px;
+    padding: 8px 12px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--line);
+    background: var(--bg-deep);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .evaluate-form input:focus {
+    outline: none;
+    border-color: var(--ember);
+  }
+  .evaluate-streams {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 32px 64px;
+  }
+  .evaluate-streams .evaluate-live {
+    padding: 16px 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+
   .evaluate-live { padding: 32px; }
   .evaluate-live h2 {
     font-family: var(--font-display), sans-serif;

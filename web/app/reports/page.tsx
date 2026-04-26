@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { listApplications } from "@/lib/data/sqlite";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReportsIndex() {
   const apps = listApplications({});
   const withReports = apps.filter(a => a.reportNum !== null);

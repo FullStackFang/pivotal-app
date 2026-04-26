@@ -2,6 +2,8 @@ import { listEvalRuns } from "@/lib/data/sqlite";
 import { computeViewState, liveIdSet } from "@/lib/agent/runState";
 import { RunsTable, type RunRow } from "@/components/RunsTable";
 
+export const dynamic = "force-dynamic";
+
 export default async function RunsPage() {
   const rows = listEvalRuns({});
   const live = liveIdSet();

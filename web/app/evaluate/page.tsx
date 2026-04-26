@@ -1,30 +1,56 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { EvaluateLiveStream } from "@/components/EvaluateLiveStream";
+
+interface QueuedRun {
+  key: string;
+  url: string;
+}
 
 export default function EvaluatePage() {
   const [url, setUrl] = useState("");
-  const [running, setRunning] = useState<string | null>(null);
+  const [runs, setRuns] = useState<QueuedRun[]>([]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url.trim()) return;
+    setRuns(prev => [...prev, { key: `${Date.now()}-${Math.random()}`, url }]);
+    setUrl("");
+  };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1 className="title">Evaluate a job posting</h1>
-      <p className="lede">Paste a URL. The agent will evaluate it and stream progress here.</p>
-      {!running ? (
-        <form onSubmit={e => { e.preventDefault(); setRunning(url); }} style={{ marginTop: 24, display: "flex", gap: 12 }}>
-          <input type="url" required value={url}
-                 placeholder="https://company.com/careers/role"
-                 onChange={e => setUrl(e.target.value)}
-                 style={{
-                   flex: 1, maxWidth: 480,
-                   padding: "8px 12px", borderRadius: 5,
-                   border: "1px solid var(--line)", background: "var(--bg-deep)", color: "var(--ink)",
-                   fontFamily: "inherit", fontSize: 14,
-                 }} />
-          <button className="btn primary" type="submit">Run evaluation</button>
-        </form>
+    <div className="evaluate-page">
+      <div className="head">
+        <h1 className="title">Evaluate a job posting</h1>
+        <p className="lede">
+          Paste a URL — the agent runs in the background.
+          {runs.length > 0 && " Submit another while the first one streams."}
+        </p>
+      </div>
+
+      <form onSubmit={submit} className="evaluate-form">
+        <input
+          type="url"
+          required
+          value={url}
+          placeholder="https://company.com/careers/role"
+          onChange={e => setUrl(e.target.value)}
+        />
+        <button className="btn primary" type="submit">Run evaluation</button>
+        <Link href="/runs" className="btn ghost">All runs →</Link>
+      </form>
+
+      {runs.length === 0 ? (
+        <p className="muted" style={{ padding: 24, color: "var(--ink-3)" }}>
+          No runs in this tab yet. Live progress will appear below as you submit.
+        </p>
       ) : (
-        <EvaluateLiveStream url={running} />
+        <div className="evaluate-streams">
+          {runs.map(r => (
+            <EvaluateLiveStream key={r.key} url={r.url} />
+          ))}
+        </div>
       )}
     </div>
   );

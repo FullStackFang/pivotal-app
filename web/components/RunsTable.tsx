@@ -64,17 +64,19 @@ export function RunsTable({ initialRuns }: { initialRuns: RunRow[] }) {
   const [pending, setPending] = useState<Map<string, "killing" | "rerunning">>(new Map());
   const [duplicateOf, setDuplicateOf] = useState<{ runId: string; existingRunId: string } | null>(null);
 
-  // Poll for fresh state every 5s.
+  // Poll for fresh state every 5s. Fire once immediately so newly-spawned
+  // runs don't have to wait a full interval to appear.
   useEffect(() => {
     let cancelled = false;
     const tick = async () => {
       try {
-        const res = await fetch("/api/runs");
+        const res = await fetch("/api/runs", { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = await res.json();
         if (!cancelled) setRuns(data.runs);
       } catch { /* ignore */ }
     };
+    tick();
     const id = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(id); };
   }, []);
