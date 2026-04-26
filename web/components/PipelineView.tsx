@@ -26,6 +26,11 @@ export function PipelineView({ initialApplications }: { initialApplications: App
     setReport(res.ok ? (await res.json()).report : null);
   }
 
+  function clearSelection() {
+    setSelectedNum(null);
+    setReport(null);
+  }
+
   const offers = apps.filter(a => a.status === "Offer").length;
   const scoredCount = apps.filter(a => a.score !== null).length;
   const avg = scoredCount
@@ -33,17 +38,36 @@ export function PipelineView({ initialApplications }: { initialApplications: App
     : 0;
 
   return (
-    <>
-      <div className="head">
-        <h1 className="title">Pipeline</h1>
-        <p className="lede">A filter, not a feed. Below the 4.0 line is noise.</p>
-        <MetricsRow pipeline={apps.length} avgScore={avg} offers={offers} responseRate={28} />
+    <div className="pipeline-shell">
+      <div className="pipeline-main">
+        <div className="head">
+          <h1 className="title">Pipeline</h1>
+          <p className="lede">A filter, not a feed. Below the 4.0 line is noise.</p>
+          <MetricsRow pipeline={apps.length} avgScore={avg} offers={offers} responseRate={28} />
+        </div>
+        <Toolbar onFilter={setStatusFilter} onSearch={setQ} />
+        <div className="table-wrap">
+          {filtered.length === 0 ? (
+            <div className="empty-state">
+              <h3>{apps.length === 0 ? "No applications yet" : "No matches"}</h3>
+              <p>
+                {apps.length === 0
+                  ? "Paste a job URL on the Evaluate page to start your pipeline."
+                  : "Try clearing the filter or search."}
+              </p>
+            </div>
+          ) : (
+            <PipelineTable
+              applications={filtered}
+              selectedNum={selectedNum}
+              onSelect={selectRow}
+            />
+          )}
+        </div>
       </div>
-      <Toolbar onFilter={setStatusFilter} onSearch={setQ} />
-      <div className="table-wrap">
-        <PipelineTable applications={filtered} selectedNum={selectedNum} onSelect={selectRow} />
-      </div>
-      <DetailPanel app={selected} report={report} />
-    </>
+      {selected && (
+        <DetailPanel app={selected} report={report} onClose={clearSelection} />
+      )}
+    </div>
   );
 }
