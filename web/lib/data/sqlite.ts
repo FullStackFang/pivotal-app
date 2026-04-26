@@ -163,6 +163,18 @@ export function getReport(num: number): Report | null {
   };
 }
 
+/**
+ * Returns a Map<url, reportNum> for fast URL→report lookup. Used by
+ * /api/runs to match runs whose stdout didn't trigger the
+ * "Writing report" parser, by joining on the URL the report records.
+ */
+export function reportNumByUrl(): Map<string, number> {
+  const rows = getDbInternal().prepare("SELECT num, url FROM reports WHERE url IS NOT NULL").all() as Array<{ num: number; url: string }>;
+  const m = new Map<string, number>();
+  for (const r of rows) m.set(r.url, r.num);
+  return m;
+}
+
 // ── eval_runs ──────────────────────────────────────────────────────────
 
 export type EvalRunStatus = "running" | "complete" | "failed";

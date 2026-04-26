@@ -1,4 +1,4 @@
-import { listEvalRuns, listApplications } from "@/lib/data/sqlite";
+import { listEvalRuns, listApplications, reportNumByUrl } from "@/lib/data/sqlite";
 import { computeViewState, liveIdSet } from "@/lib/agent/runState";
 import { RunsTable, type RunRow } from "@/components/RunsTable";
 
@@ -13,11 +13,14 @@ export default async function RunsPage() {
       appsByReportNum.set(a.reportNum, { company: a.company, role: a.role, score: a.score });
     }
   }
+  const urlToReportNum = reportNumByUrl();
   const initialRuns: RunRow[] = rows.map(r => {
     const viewState = computeViewState(r, live);
-    const app = r.resultNum !== null ? appsByReportNum.get(r.resultNum) : undefined;
+    const reportNum = r.resultNum ?? urlToReportNum.get(r.url) ?? null;
+    const app = reportNum !== null ? appsByReportNum.get(reportNum) : undefined;
     return {
       ...r,
+      resultNum: reportNum,
       viewState,
       live: viewState === "attached",
       company: app?.company ?? null,

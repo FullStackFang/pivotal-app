@@ -1,8 +1,11 @@
 import type { EvalEvent } from "../types.js";
 
-const BLOCK_RE  = /Block\s+(\d+)\s*\/\s*(\d+)\s*[:·-]\s*(.+)$/;
-const REPORT_RE = /Writing report\s+(\d{3})-(.+\.md)/i;
-const TRACK_RE  = /Tracker updated/i;
+const BLOCK_RE      = /Block\s+(\d+)\s*\/\s*(\d+)\s*[:·-]\s*(.+)$/;
+// Many forms recognize a "report N produced" line. Order matters — try
+// the most specific patterns first.
+const WRITING_RE    = /Writing report\s+(\d{3})-(.+\.md)/i;
+const REPORT_PATH_RE = /reports\/(\d{3})-([^\s`'"<>]+\.md)/i;
+const TRACK_RE      = /Tracker\s*(?:updated|:)/i;
 
 export function parseClaudeLine(line: string): EvalEvent | null {
   const b = line.match(BLOCK_RE);
@@ -13,11 +16,21 @@ export function parseClaudeLine(line: string): EvalEvent | null {
     label: b[3].trim(),
   };
 
-  const r = line.match(REPORT_RE);
-  if (r) return {
+  // "Writing report 042-acme-...md" — the original explicit form.
+  const w = line.match(WRITING_RE);
+  if (w) return {
     type: "report-written",
-    num: parseInt(r[1], 10),
-    path: `${r[1]}-${r[2]}`,
+    num: parseInt(w[1], 10),
+    path: `${w[1]}-${w[2]}`,
+  };
+
+  // Catches "**Filed:** reports/042-acme-...md", "Report: reports/042-...",
+  // and any other line that mentions a report path.
+  const p = line.match(REPORT_PATH_RE);
+  if (p) return {
+    type: "report-written",
+    num: parseInt(p[1], 10),
+    path: `${p[1]}-${p[2]}`,
   };
 
   if (TRACK_RE.test(line)) return { type: "tracker-updated" };
