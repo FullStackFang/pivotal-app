@@ -41,7 +41,13 @@ export function PipelineView({ initialApplications }: { initialApplications: App
     <div className="pipeline-shell">
       <div className="pipeline-main">
         <div className="head">
-          <h1 className="title">Pipeline</h1>
+          <h1 className="title">
+            {apps.length === 1
+              ? <>One role <em>in flight</em>.</>
+              : offers > 0
+                ? <>{apps.length} roles, <em>{offers} worth your week</em>.</>
+                : <>{apps.length} roles, <em>filtering hard</em>.</>}
+          </h1>
           <p className="lede">A filter, not a feed. Below the 4.0 line is noise.</p>
           <MetricsRow pipeline={apps.length} avgScore={avg} offers={offers} responseRate={28} />
         </div>
@@ -49,11 +55,11 @@ export function PipelineView({ initialApplications }: { initialApplications: App
         <div className="table-wrap">
           {filtered.length === 0 ? (
             <div className="empty-state">
-              <h3>{apps.length === 0 ? "No applications yet" : "No matches"}</h3>
+              <h3>{apps.length === 0 ? "Empty pipeline" : "Nothing matches"}</h3>
               <p>
                 {apps.length === 0
-                  ? "Paste a job URL on the Evaluate page to start your pipeline."
-                  : "Try clearing the filter or search."}
+                  ? "Paste a job URL on the Evaluate tab — the agent does the rest."
+                  : "Loosen the filter or clear the search to see the whole list."}
               </p>
             </div>
           ) : (

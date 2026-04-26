@@ -29,13 +29,18 @@ export function DetailPanel({ app, report, onClose }: {
         <div className="section">
           <h4>Score breakdown</h4>
           <div className="breakdown">
-            {(["A","B","C","D","E","F","G"] as const).map(k => report.scores[k] !== undefined && (
-              <div key={k} className="row">
-                <div className="label">{k}</div>
-                <div className="meter"><span style={{ width: `${(report.scores[k]! / 5) * 100}%` }} /></div>
-                <div className="v">{report.scores[k]!.toFixed(1)}</div>
-              </div>
-            ))}
+            {(["A","B","C","D","E","F","G"] as const).map(k => {
+              const v = report.scores[k];
+              if (v === undefined) return null;
+              const tone = v >= 4 ? "sage" : v >= 3 ? "amber" : "oxblood";
+              return (
+                <div key={k} className="row" data-tone={tone}>
+                  <div className="label">{k}</div>
+                  <div className="meter"><span style={{ width: `${(v / 5) * 100}%` }} /></div>
+                  <div className="v">{v.toFixed(1)}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

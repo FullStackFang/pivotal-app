@@ -3,6 +3,12 @@ import type { Application } from "@/lib/types";
 import { ScoreBar } from "./ScoreBar";
 import { StatusPill } from "./StatusPill";
 
+function hueFor(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
 export function PipelineTable({
   applications, selectedNum, onSelect,
 }: {
@@ -30,7 +36,12 @@ export function PipelineTable({
             <td className="id">{String(a.num).padStart(3, "0")}</td>
             <td>
               <div className="co">
-                <div className="logo">{a.company[0]}</div>
+                <div
+                  className="logo"
+                  style={{ ["--logo-hue" as string]: hueFor(a.company) }}
+                >
+                  {a.company[0]}
+                </div>
                 <div className="co-name"><b>{a.company}</b></div>
               </div>
             </td>

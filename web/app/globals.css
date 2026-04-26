@@ -34,6 +34,9 @@
   html, body { margin: 0; padding: 0; }
   body {
     background: var(--bg);
+    background-image:
+      radial-gradient(900px 500px at 85% -200px, oklch(0.30 0.05 55 / 0.18), transparent 60%),
+      radial-gradient(700px 400px at -100px 100%, oklch(0.26 0.03 70 / 0.20), transparent 60%);
     color: var(--ink);
     font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
     font-size: 14px;
@@ -93,9 +96,9 @@
     width: 220px;
   }
   .brand-mark {
-    width: 10px; height: 10px;
+    width: 14px; height: 14px;
     background: var(--ember);
-    border-radius: 2px;
+    clip-path: polygon(0 0, 100% 0, 100% 60%, 60% 60%, 60% 100%, 0 100%);
   }
   .topbar .stat { color: var(--ink-2); }
   .topbar .stat b { color: var(--ink); font-weight: 600; }
@@ -211,15 +214,20 @@
   }
   h1.title {
     font-family: var(--font-display), sans-serif;
-    font-size: clamp(28px, 3.6vw, 40px);
-    font-weight: 700;
-    line-height: 1.05;
-    letter-spacing: -0.02em;
+    font-size: clamp(34px, 4.4vw, 56px);
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.025em;
     margin: 0;
     color: var(--ink);
   }
+  h1.title em {
+    font-style: normal;
+    color: var(--ember);
+    font-weight: 800;
+  }
   .lede {
-    margin: 8px 0 0;
+    margin: 10px 0 0;
     color: var(--ink-3);
     max-width: 62ch;
     font-size: 14px;
@@ -264,8 +272,9 @@
     font-family: var(--font-mono), monospace;
     font-weight: 400;
     font-size: 11px;
-    color: var(--ink-3);
+    color: var(--ember);
     letter-spacing: 0.04em;
+    opacity: 0.7;
   }
 
   .toolbar {
@@ -377,7 +386,10 @@
   }
   table.apps tbody td:first-child { padding-left: 32px; }
   table.apps tbody td:last-child  { padding-right: 32px; }
-  table.apps tbody tr { cursor: pointer; }
+  table.apps tbody tr {
+    cursor: pointer;
+    transition: background-color 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
   table.apps tbody tr:hover { background: var(--surface); }
   table.apps tbody tr.is-selected {
     background: var(--ember-tint);
@@ -391,17 +403,20 @@
   }
   .co { display: flex; align-items: center; gap: 12px; }
   .logo {
-    width: 28px; height: 28px;
-    border-radius: 6px;
-    background: var(--surface-hi);
+    width: 30px; height: 30px;
+    border-radius: 7px;
     display: grid;
     place-items: center;
     font-family: var(--font-display), sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ember);
+    font-size: 14px;
+    font-weight: 800;
     border: 1px solid var(--line);
     flex-shrink: 0;
+    background:
+      linear-gradient(135deg,
+        oklch(0.32 0.06 var(--logo-hue, 60)),
+        oklch(0.20 0.03 var(--logo-hue, 60)));
+    color: oklch(0.85 0.13 var(--logo-hue, 60));
   }
   .co-name b { font-weight: 600; color: var(--ink); }
   .role { color: var(--ink); }
@@ -427,6 +442,17 @@
     background: var(--surface-hi);
     display: block;
     border-radius: 1px;
+    transform-origin: left center;
+    animation: bar-in 360ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+  .score-bar i:nth-child(1) { animation-delay: 0ms; }
+  .score-bar i:nth-child(2) { animation-delay: 40ms; }
+  .score-bar i:nth-child(3) { animation-delay: 80ms; }
+  .score-bar i:nth-child(4) { animation-delay: 120ms; }
+  .score-bar i:nth-child(5) { animation-delay: 160ms; }
+  @keyframes bar-in {
+    from { transform: scaleX(0); opacity: 0; }
+    to   { transform: scaleX(1); opacity: 1; }
   }
   .score[data-tone="sage"]    .score-bar i[data-fill="full"]    { background: var(--sage); }
   .score[data-tone="sage"]    .score-bar i[data-fill="partial"] { background: var(--sage-soft); }
@@ -474,6 +500,11 @@
     display: flex;
     flex-direction: column;
     border-left: 1px solid var(--line);
+    animation: panel-in 240ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+  @keyframes panel-in {
+    from { transform: translateX(20px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
   }
   @media (max-width: 1100px) {
     aside.detail { width: 320px; }
@@ -509,17 +540,17 @@
     background: var(--surface);
   }
   .verdict .num {
-    padding: 12px 16px;
+    padding: 14px 18px;
     background: var(--sage-soft);
     color: var(--sage);
     font-family: var(--font-display), sans-serif;
-    font-weight: 700;
-    font-size: 32px;
+    font-weight: 800;
+    font-size: 48px;
     line-height: 1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     display: grid;
     place-items: center;
-    min-width: 92px;
+    min-width: 110px;
     border-right: 1px solid var(--line);
   }
   .verdict .num small {
@@ -570,9 +601,9 @@
     font-family: var(--font-mono), monospace;
   }
   .breakdown .meter {
-    height: 4px;
+    height: 5px;
     background: var(--surface-hi);
-    border-radius: 2px;
+    border-radius: 3px;
     overflow: hidden;
     position: relative;
   }
@@ -580,7 +611,11 @@
     position: absolute;
     left: 0; top: 0; bottom: 0;
     background: var(--sage);
+    border-radius: 3px;
+    animation: bar-in 600ms cubic-bezier(0.25, 1, 0.5, 1) both;
   }
+  .breakdown .row[data-tone="amber"]   .meter span { background: var(--amber); }
+  .breakdown .row[data-tone="oxblood"] .meter span { background: var(--oxblood); }
   .breakdown .v {
     font-family: var(--font-mono), monospace;
     font-size: 11px;
