@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Application, Report } from "@/lib/types";
 import { PipelineTable } from "./PipelineTable";
 import { Toolbar } from "./Toolbar";
@@ -7,7 +7,22 @@ import { MetricsRow } from "./MetricsRow";
 import { DetailPanel } from "./DetailPanel";
 
 export function PipelineView({ initialApplications }: { initialApplications: Application[] }) {
-  const [apps] = useState(initialApplications);
+  const [apps, setApps] = useState(initialApplications);
+
+  // Poll for fresh state every 5s so newly-evaluated rows appear without a hard refresh.
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch("/api/applications");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) setApps(data.applications);
+      } catch { /* ignore */ }
+    };
+    const id = setInterval(tick, 5000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [q, setQ] = useState("");
   const [selectedNum, setSelectedNum] = useState<number | null>(null);
