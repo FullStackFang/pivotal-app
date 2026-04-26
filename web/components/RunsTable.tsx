@@ -143,10 +143,11 @@ export function RunsTable({ initialRuns }: { initialRuns: RunRow[] }) {
       <thead>
         <tr>
           <th style={{ width: 110 }}>Status</th>
-          <th>Posting</th>
-          <th style={{ width: 110 }}>Started</th>
-          <th style={{ width: 90 }}>Duration</th>
-          <th style={{ width: 90 }}>Result</th>
+          <th style={{ width: 200 }}>Company</th>
+          <th>Role</th>
+          <th style={{ width: 100 }}>Started</th>
+          <th style={{ width: 80 }}>Duration</th>
+          <th style={{ width: 80 }}>Result</th>
           <th style={{ width: 220, textAlign: "right" }}>Actions</th>
         </tr>
       </thead>
@@ -201,22 +202,39 @@ function Row({
           <span className={`status ${pill.cls}`}>{pill.label}</span>
         </td>
         <td>
-          <div className="posting">
-            {row.company && row.role ? (
-              <div className="posting-title">
-                <b>{row.company}</b>
-                <span className="posting-role">{row.role}</span>
-              </div>
-            ) : (
-              <div className="posting-title posting-pending">
-                <span>—</span>
-                <span className="posting-role">{row.viewState === "attached" || row.viewState === "orphan-alive" ? "evaluating…" : "no report produced"}</span>
-              </div>
-            )}
-            <a href={row.url} target="_blank" rel="noreferrer" className="posting-url">
-              {shortUrl(row.url)} ↗
-            </a>
-          </div>
+          {row.company ? (
+            <div className="run-company">
+              <b>{row.company}</b>
+              <a
+                href={row.url}
+                target="_blank"
+                rel="noreferrer"
+                className="run-url-mini"
+                title={row.url}
+              >↗</a>
+            </div>
+          ) : (
+            <div className="run-company">
+              <a
+                href={row.url}
+                target="_blank"
+                rel="noreferrer"
+                className="run-url-fallback"
+                title={row.url}
+              >
+                {shortUrl(row.url)} ↗
+              </a>
+            </div>
+          )}
+        </td>
+        <td className="run-role">
+          {row.role ?? (
+            <span className="run-pending">
+              {row.viewState === "attached" || row.viewState === "orphan-alive"
+                ? "evaluating…"
+                : "no report produced"}
+            </span>
+          )}
         </td>
         <td className="date">{relativeTime(row.startedAt)}</td>
         <td className="date">{duration(row.startedAt, row.finishedAt)}</td>
@@ -253,7 +271,7 @@ function Row({
       </tr>
       {duplicateOf && (
         <tr>
-          <td colSpan={6} className="dup-banner">
+          <td colSpan={7} className="dup-banner">
             <span>
               A run for this URL is already active (
               <code>#{duplicateOf.existingRunId.slice(0, 8)}</code>).
@@ -267,7 +285,7 @@ function Row({
       )}
       {isOpen && (
         <tr className="log-row">
-          <td colSpan={6}>
+          <td colSpan={7}>
             <LogDrawer run={row} />
           </td>
         </tr>
