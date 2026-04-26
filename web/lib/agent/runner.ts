@@ -110,9 +110,12 @@ export function runEvaluation(url: string): {
 
   // Pass args as an array. spawn with array args does NOT invoke a shell,
   // so the URL inside the prompt string cannot trigger any shell interpolation.
+  // stdio: explicitly close stdin (claude warns + waits 3s otherwise) and
+  // pipe stdout/stderr so we can stream them.
   const proc = spawn("claude", ["-p", `/career-ops ${url}`], {
     cwd: resolveRoot(),
     env: process.env,
+    stdio: ["ignore", "pipe", "pipe"],
   });
   liveProcs.set(runId, proc);
 
