@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { listEvalRuns, listApplications, reportNumByUrl, type EvalRunStatus } from "@/lib/data/sqlite";
-import { computeViewState, liveIdSet } from "@/lib/agent/runState";
+import { canonicalizeUrl, computeViewState, liveIdSet } from "@/lib/agent/runState";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -22,18 +22,25 @@ export async function GET(req: Request) {
     }
   }
   // URL fallback: when result_num wasn't captured (the runner's stdout
-  // parser missed the agent's "Filed:" output format), match runs to
-  // reports via the URL recorded inside the report itself.
-  const urlToReportNum = reportNumByUrl();
+  // parser missed the agent's output format), match runs to reports via
+  // the URL recorded inside the report. We canonicalize both sides so a
+  // run that stored the full tracking URL still matches a report whose
+  // recorded URL was cleaned by the agent.
+  const rawUrlMap = reportNumByUrl();
+  const canonicalUrlMap = new Map<string, number>();
+  for (const [u, n] of rawUrlMap) canonicalUrlMap.set(canonicalizeUrl(u), n);
 
   return NextResponse.json({
     runs: runs.map(r => {
       const viewState = computeViewState(r, live);
-      const reportNum = r.resultNum ?? urlToReportNum.get(r.url) ?? null;
+      const reportNum =
+        r.resultNum ??
+        rawUrlMap.get(r.url) ??
+        canonicalUrlMap.get(canonicalizeUrl(r.url)) ??
+        null;
       const app = reportNum !== null ? appsByReportNum.get(reportNum) : undefined;
       return {
         ...r,
-        // surface the resolved report num so the UI can link to it
         resultNum: reportNum,
         viewState,
         live: viewState === "attached",

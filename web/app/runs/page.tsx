@@ -1,5 +1,5 @@
 import { listEvalRuns, listApplications, reportNumByUrl } from "@/lib/data/sqlite";
-import { computeViewState, liveIdSet } from "@/lib/agent/runState";
+import { canonicalizeUrl, computeViewState, liveIdSet } from "@/lib/agent/runState";
 import { RunsTable, type RunRow } from "@/components/RunsTable";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +13,17 @@ export default async function RunsPage() {
       appsByReportNum.set(a.reportNum, { company: a.company, role: a.role, score: a.score });
     }
   }
-  const urlToReportNum = reportNumByUrl();
+  const rawUrlMap = reportNumByUrl();
+  const canonicalUrlMap = new Map<string, number>();
+  for (const [u, n] of rawUrlMap) canonicalUrlMap.set(canonicalizeUrl(u), n);
+
   const initialRuns: RunRow[] = rows.map(r => {
     const viewState = computeViewState(r, live);
-    const reportNum = r.resultNum ?? urlToReportNum.get(r.url) ?? null;
+    const reportNum =
+      r.resultNum ??
+      rawUrlMap.get(r.url) ??
+      canonicalUrlMap.get(canonicalizeUrl(r.url)) ??
+      null;
     const app = reportNum !== null ? appsByReportNum.get(reportNum) : undefined;
     return {
       ...r,
