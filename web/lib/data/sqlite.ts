@@ -149,3 +149,84 @@ export function getReport(num: number): Report | null {
     bodyMd: row.body_md, updatedAt: row.updated_at,
   };
 }
+
+// ── eval_runs ──────────────────────────────────────────────────────────
+
+export type EvalRunStatus = "running" | "complete" | "failed";
+
+export interface EvalRun {
+  id: string;
+  url: string;
+  status: EvalRunStatus;
+  startedAt: number;
+  finishedAt: number | null;
+  resultNum: number | null;
+  logPath: string;
+  errorMsg: string | null;
+}
+
+export function insertEvalRun(r: {
+  id: string; url: string; logPath: string;
+}): void {
+  getDbInternal().prepare(`
+    INSERT INTO eval_runs(id, url, status, started_at, finished_at, result_num, log_path, error_msg)
+    VALUES (@id, @url, 'running', @started_at, NULL, NULL, @log_path, NULL)
+  `).run({
+    id: r.id, url: r.url, log_path: r.logPath,
+    started_at: Date.now(),
+  });
+}
+
+export function updateEvalRun(id: string, patch: {
+  status: EvalRunStatus;
+  resultNum?: number | null;
+  errorMsg?: string | null;
+}): void {
+  getDbInternal().prepare(`
+    UPDATE eval_runs
+    SET status = @status,
+        finished_at = @finished_at,
+        result_num = @result_num,
+        error_msg = @error_msg
+    WHERE id = @id
+  `).run({
+    id,
+    status: patch.status,
+    finished_at: Date.now(),
+    result_num: patch.resultNum ?? null,
+    error_msg: patch.errorMsg ?? null,
+  });
+}
+
+export function listEvalRuns(filter: { status?: EvalRunStatus; limit?: number } = {}): EvalRun[] {
+  const where = filter.status ? "WHERE status = @status" : "";
+  const rows = getDbInternal().prepare(`
+    SELECT * FROM eval_runs ${where}
+    ORDER BY started_at DESC
+    LIMIT @limit
+  `).all({
+    status: filter.status,
+    limit: filter.limit ?? 50,
+  }) as any[];
+  return rows.map(r => ({
+    id: r.id, url: r.url, status: r.status as EvalRunStatus,
+    startedAt: r.started_at, finishedAt: r.finished_at,
+    resultNum: r.result_num, logPath: r.log_path, errorMsg: r.error_msg,
+  }));
+}
+
+/**
+ * Marks any runs left in `running` state as `failed` with a sweep message.
+ * Call on server boot — anything still "running" must be from a previous
+ * process that's no longer alive.
+ */
+export function sweepStaleEvalRuns(): number {
+  const result = getDbInternal().prepare(`
+    UPDATE eval_runs
+    SET status = 'failed',
+        finished_at = @now,
+        error_msg = 'Server restarted while run was active'
+    WHERE status = 'running'
+  `).run({ now: Date.now() });
+  return result.changes;
+}
