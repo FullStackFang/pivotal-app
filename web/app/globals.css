@@ -198,6 +198,46 @@
     cursor: help;
   }
 
+  .posting {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .posting-title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .posting-title b {
+    font-weight: 700;
+  }
+  .posting-role {
+    color: var(--ink-2);
+    font-size: 12px;
+  }
+  .posting-pending b,
+  .posting-pending > span:first-child {
+    color: var(--ink-3);
+    font-style: italic;
+  }
+  .posting-pending .posting-role {
+    color: var(--ink-3);
+    font-style: italic;
+  }
+  .posting-url {
+    font-family: var(--font-mono), monospace;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .posting-url:hover { color: var(--ember); }
+
   .run-actions {
     display: flex;
     gap: 6px;

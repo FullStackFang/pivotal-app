@@ -1,4 +1,4 @@
-import { listEvalRuns } from "@/lib/data/sqlite";
+import { listEvalRuns, listApplications } from "@/lib/data/sqlite";
 import { computeViewState, liveIdSet } from "@/lib/agent/runState";
 import { RunsTable, type RunRow } from "@/components/RunsTable";
 
@@ -7,9 +7,23 @@ export const dynamic = "force-dynamic";
 export default async function RunsPage() {
   const rows = listEvalRuns({});
   const live = liveIdSet();
+  const appsByReportNum = new Map<number, { company: string; role: string; score: number | null }>();
+  for (const a of listApplications({})) {
+    if (a.reportNum !== null) {
+      appsByReportNum.set(a.reportNum, { company: a.company, role: a.role, score: a.score });
+    }
+  }
   const initialRuns: RunRow[] = rows.map(r => {
     const viewState = computeViewState(r, live);
-    return { ...r, viewState, live: viewState === "attached" };
+    const app = r.resultNum !== null ? appsByReportNum.get(r.resultNum) : undefined;
+    return {
+      ...r,
+      viewState,
+      live: viewState === "attached",
+      company: app?.company ?? null,
+      role: app?.role ?? null,
+      score: app?.score ?? null,
+    };
   });
   const liveCount = initialRuns.filter(r =>
     r.viewState === "attached" || r.viewState === "orphan-alive"

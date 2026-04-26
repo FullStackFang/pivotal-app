@@ -16,6 +16,9 @@ export interface RunRow {
   pid: number | null;
   viewState: ViewState;
   live: boolean;
+  company: string | null;
+  role: string | null;
+  score: number | null;
 }
 
 function relativeTime(ms: number): string {
@@ -140,7 +143,7 @@ export function RunsTable({ initialRuns }: { initialRuns: RunRow[] }) {
       <thead>
         <tr>
           <th style={{ width: 110 }}>Status</th>
-          <th>URL</th>
+          <th>Posting</th>
           <th style={{ width: 110 }}>Started</th>
           <th style={{ width: 90 }}>Duration</th>
           <th style={{ width: 90 }}>Result</th>
@@ -198,9 +201,22 @@ function Row({
           <span className={`status ${pill.cls}`}>{pill.label}</span>
         </td>
         <td>
-          <a href={row.url} target="_blank" rel="noreferrer" className="role">
-            {shortUrl(row.url)}
-          </a>
+          <div className="posting">
+            {row.company && row.role ? (
+              <div className="posting-title">
+                <b>{row.company}</b>
+                <span className="posting-role">{row.role}</span>
+              </div>
+            ) : (
+              <div className="posting-title posting-pending">
+                <span>—</span>
+                <span className="posting-role">{row.viewState === "attached" || row.viewState === "orphan-alive" ? "evaluating…" : "no report produced"}</span>
+              </div>
+            )}
+            <a href={row.url} target="_blank" rel="noreferrer" className="posting-url">
+              {shortUrl(row.url)} ↗
+            </a>
+          </div>
         </td>
         <td className="date">{relativeTime(row.startedAt)}</td>
         <td className="date">{duration(row.startedAt, row.finishedAt)}</td>
