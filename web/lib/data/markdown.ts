@@ -1,5 +1,6 @@
 import fs from "node:fs";
-import { Application, CanonicalStatus } from "../types.js";
+import path from "node:path";
+import { Application, CanonicalStatus, Report, ReportScores } from "../types.js";
 
 const TABLE_HEADER_RE = /^\|\s*#\s*\|\s*Date\s*\|/i;
 
@@ -42,4 +43,36 @@ export function parseApplications(filePath: string): Application[] {
     });
   }
   return rows;
+}
+
+const NUM_FROM_FILENAME = /^(\d{3})-/;
+const URL_LINE          = /^\*\*URL:\*\*\s*(.+)$/m;
+const LEGIT_LINE        = /^\*\*Legitimacy:\*\*\s*(.+)$/m;
+const BLOCK_HEADING     = /^##\s+Block\s+([A-G])\b[^(]*\((\d+(?:\.\d+)?)\)/gm;
+
+export function parseReport(filePath: string): Report {
+  const raw  = fs.readFileSync(filePath, "utf8");
+  const stat = fs.statSync(filePath);
+  const base = path.basename(filePath);
+  const numMatch = base.match(NUM_FROM_FILENAME);
+  if (!numMatch) throw new Error(`Cannot derive num from filename: ${base}`);
+
+  const urlMatch   = raw.match(URL_LINE);
+  const legitMatch = raw.match(LEGIT_LINE);
+
+  const scores: ReportScores = {};
+  for (const m of raw.matchAll(BLOCK_HEADING)) {
+    const key = m[1] as keyof ReportScores;
+    scores[key] = parseFloat(m[2]);
+  }
+
+  return {
+    num: parseInt(numMatch[1], 10),
+    path: filePath,
+    url: urlMatch?.[1].trim() ?? null,
+    legitimacy: legitMatch?.[1].trim() ?? null,
+    scores,
+    bodyMd: raw,
+    updatedAt: stat.mtimeMs,
+  };
 }
