@@ -4,7 +4,7 @@ import path from "node:path";
 import { SQLITE_FILE } from "../paths.js";
 import type { Application, Report, AppFilter } from "../types.js";
 
-const SCHEMA_VERSION = "2";
+const SCHEMA_VERSION = "3";
 let db: Database.Database | null = null;
 
 export function openDb(file: string = SQLITE_FILE): Database.Database {
@@ -66,6 +66,19 @@ function ensureSchema(d: Database.Database) {
       error_msg TEXT,
       pid INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS scan_runs (
+      id TEXT PRIMARY KEY,
+      status TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      finished_at INTEGER,
+      log_path TEXT NOT NULL,
+      error_msg TEXT,
+      pid INTEGER,
+      new_postings_json TEXT,
+      priority INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_scan_runs_started ON scan_runs(started_at DESC);
   `);
 
   const cur = d.prepare("SELECT value FROM meta WHERE key='schema_version'").get() as { value: string } | undefined;
@@ -73,12 +86,15 @@ function ensureSchema(d: Database.Database) {
     d.prepare("INSERT INTO meta(key,value) VALUES ('schema_version', ?)").run(SCHEMA_VERSION);
   } else if (cur.value === SCHEMA_VERSION) {
     // already current, no-op
-  } else if (cur.value === "1") {
-    // v1 -> v2: add pid column to eval_runs
-    const cols = d.prepare("PRAGMA table_info(eval_runs)").all() as Array<{ name: string }>;
-    if (!cols.some(c => c.name === "pid")) {
-      d.exec("ALTER TABLE eval_runs ADD COLUMN pid INTEGER;");
+  } else if (cur.value === "1" || cur.value === "2") {
+    if (cur.value === "1") {
+      // v1 -> v2: add pid column to eval_runs
+      const cols = d.prepare("PRAGMA table_info(eval_runs)").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === "pid")) {
+        d.prepare("ALTER TABLE eval_runs ADD COLUMN pid INTEGER").run();
+      }
     }
+    // v2 -> v3: scan_runs table is created by ensureSchema's CREATE IF NOT EXISTS above.
     d.prepare("UPDATE meta SET value = ? WHERE key='schema_version'").run(SCHEMA_VERSION);
   } else {
     throw new Error(`Unexpected schema version ${cur.value}`);
@@ -299,4 +315,131 @@ export function sweepStaleEvalRuns(): number {
   const rows = listRunningEvalRuns();
   for (const row of rows) markOrphanDead(row.id, "Server restarted while run was active");
   return rows.length;
+}
+
+// ── scan_runs ──────────────────────────────────────────────────────────
+
+export type ScanRunStatus = "running" | "complete" | "failed";
+
+export interface ScanRunPosting {
+  url: string;
+  company: string;
+  title: string;
+}
+
+export interface ScanRun {
+  id: string;
+  status: ScanRunStatus;
+  startedAt: number;
+  finishedAt: number | null;
+  logPath: string;
+  errorMsg: string | null;
+  pid: number | null;
+  newPostings: ScanRunPosting[];
+  priority: boolean;
+}
+
+export function insertScanRun(r: {
+  id: string; logPath: string; pid: number | null; priority: boolean;
+}): void {
+  getDbInternal().prepare(`
+    INSERT INTO scan_runs(id, status, started_at, finished_at, log_path, error_msg, pid, new_postings_json, priority)
+    VALUES (@id, 'running', @started_at, NULL, @log_path, NULL, @pid, NULL, @priority)
+  `).run({
+    id: r.id, log_path: r.logPath, pid: r.pid,
+    priority: r.priority ? 1 : 0,
+    started_at: Date.now(),
+  });
+}
+
+export function updateScanRun(id: string, patch: {
+  status: ScanRunStatus;
+  newPostings?: ScanRunPosting[] | null;
+  errorMsg?: string | null;
+}): void {
+  getDbInternal().prepare(`
+    UPDATE scan_runs
+    SET status = @status,
+        finished_at = @finished_at,
+        new_postings_json = @new_postings_json,
+        error_msg = @error_msg
+    WHERE id = @id
+  `).run({
+    id,
+    status: patch.status,
+    finished_at: Date.now(),
+    new_postings_json: patch.newPostings ? JSON.stringify(patch.newPostings) : null,
+    error_msg: patch.errorMsg ?? null,
+  });
+}
+
+export function listScanRuns(filter: { status?: ScanRunStatus; limit?: number } = {}): ScanRun[] {
+  const where = filter.status ? "WHERE status = @status" : "";
+  const rows = getDbInternal().prepare(`
+    SELECT * FROM scan_runs ${where}
+    ORDER BY started_at DESC
+    LIMIT @limit
+  `).all({
+    status: filter.status,
+    limit: filter.limit ?? 50,
+  }) as any[];
+  return rows.map(rowToScanRun);
+}
+
+function rowToScanRun(r: any): ScanRun {
+  return {
+    id: r.id,
+    status: r.status as ScanRunStatus,
+    startedAt: r.started_at,
+    finishedAt: r.finished_at,
+    logPath: r.log_path,
+    errorMsg: r.error_msg,
+    pid: r.pid ?? null,
+    newPostings: r.new_postings_json ? JSON.parse(r.new_postings_json) as ScanRunPosting[] : [],
+    priority: r.priority === 1,
+  };
+}
+
+export function getScanRun(id: string): ScanRun | null {
+  const row = getDbInternal().prepare("SELECT * FROM scan_runs WHERE id = ?").get(id) as any;
+  if (!row) return null;
+  return rowToScanRun(row);
+}
+
+export function listRunningScanRuns(): ScanRun[] {
+  return listScanRuns({ status: "running", limit: 100 });
+}
+
+export function hasRunningScan(): boolean {
+  const row = getDbInternal().prepare(
+    "SELECT COUNT(*) as n FROM scan_runs WHERE status = 'running'"
+  ).get() as { n: number };
+  return row.n > 0;
+}
+
+export function markScanOrphanDead(id: string, errorMsg: string = "Process exited while server was offline"): void {
+  getDbInternal().prepare(`
+    UPDATE scan_runs
+    SET status = 'failed',
+        finished_at = @now,
+        error_msg = @error_msg
+    WHERE id = @id AND status = 'running'
+  `).run({ id, now: Date.now(), error_msg: errorMsg });
+}
+
+export function reconcileScanRunsOnBoot(isPidAlive: (pid: number) => boolean): { swept: number; kept: number } {
+  let swept = 0, kept = 0;
+  const rows = listRunningScanRuns();
+  for (const row of rows) {
+    if (row.pid === null) {
+      markScanOrphanDead(row.id, "Server restarted (no PID recorded)");
+      swept++;
+    } else if (isPidAlive(row.pid)) {
+      kept++;
+    } else {
+      markScanOrphanDead(row.id, "Process exited while server was offline");
+      swept++;
+    }
+  }
+  return { swept, kept };
 }

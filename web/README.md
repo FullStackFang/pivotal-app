@@ -1,7 +1,7 @@
 # career-ops · web
 
-A personal web UX on top of the existing career-ops CLI. Runs on your laptop;
-reachable from anywhere via Cloudflare Tunnel + Access.
+A web UX on top of the existing career-ops CLI. Runs on your laptop, uses your
+local Claude Code subscription for evaluations.
 
 ## What it gives you
 
@@ -12,7 +12,20 @@ reachable from anywhere via Cloudflare Tunnel + Access.
 The CLI keeps working unchanged. Edit `data/applications.md` in another window
 and the web UI picks it up via the file watcher.
 
-## Run locally
+## Run it
+
+The recommended entry point is the `career-ops` launcher at the repo root:
+
+```bash
+npx career-ops serve
+```
+
+That starts the bundled web UI on `http://127.0.0.1:3000` and points it at the
+right data directory (auto-detected from your cwd; override with `--data
+<path>` or `CAREER_OPS_ROOT`). It spawns the local `claude` subprocess for
+evaluations, so you use your existing Claude Code subscription.
+
+For development inside this repo:
 
 ```bash
 cd web
@@ -23,7 +36,7 @@ npm start            # listens on :3000
 
 Open http://localhost:3000.
 
-## Expose remotely (Cloudflare Tunnel + Access)
+## Multi-device access (optional, Cloudflare Tunnel + Access)
 
 1. Install: `brew install cloudflared` (or your platform's equivalent)
 2. Authenticate: `cloudflared tunnel login`
@@ -76,8 +89,14 @@ web/
 └── instrumentation.ts       # boot-time fullIndex + watcher
 ```
 
-`CAREER_OPS_ROOT` defaults to the parent directory (the repo root). Override
-with the env var for tests/fixtures.
+`CAREER_OPS_ROOT` resolution order (matches the `bin/career-ops.mjs`
+launcher's logic):
+
+1. Explicit `CAREER_OPS_ROOT` env var (or `--data <path>` passed to the launcher).
+2. The current working directory, if it contains `cv.md`.
+3. `<cwd>/career-ops/` if that subdirectory exists.
+4. The cloned repo root (developer mode), if it contains `cv.md`.
+5. `~/.career-ops/` as a per-user fallback (created on first use).
 
 ## Tests
 

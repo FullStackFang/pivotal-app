@@ -1,0 +1,20 @@
+{
+  "name": "career-ops",
+  "description": "AI job search command center: evaluate offers, generate CVs, scan portals, track applications. Uses your local Claude Code subscription.",
+  "owner": {
+    "name": "Santiago Fernández de Valderrama",
+    "email": "hi@santifer.io"
+  },
+  "plugins": [
+    {
+      "name": "career-ops",
+      "description": "AI job search command center: evaluate offers, generate CVs, scan portals, track applications.",
+      "version": "1.0.0",
+      "source": "./",
+      "author": {
+        "name": "Santiago Fernández de Valderrama",
+        "email": "hi@santifer.io"
+      }
+    }
+  ]
+}

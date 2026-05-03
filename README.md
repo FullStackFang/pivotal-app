@@ -79,6 +79,43 @@ Built by someone who used it to evaluate 740+ job offers, generate 100+ tailored
 
 ## Quick Start
 
+### Option A — Install as a plugin (recommended)
+
+The fastest way to start using career-ops is to install it as a Claude Code plugin (or Gemini CLI extension):
+
+```bash
+# Claude Code (uses your local subscription, no API key needed):
+claude plugin marketplace add santifer/career-ops
+claude plugin install career-ops
+
+# Gemini CLI:
+gemini extension install santifer/career-ops
+
+# OpenCode users: clone the repo (the .opencode/ commands are auto-detected).
+```
+
+Then, in your CLI of choice:
+
+```
+/career-ops               # Show command menu
+/career-ops oferta <URL>  # Evaluate a job posting
+/career-ops scan          # Scan portals for new offers
+```
+
+Career-ops auto-detects the data directory: it uses your current working directory if it contains `cv.md`, otherwise falls back to `~/.career-ops/`. On first run it walks you through CV import, profile setup, and portal config.
+
+For the local web UI (paste URLs into a browser, watch evaluations stream live):
+
+```bash
+npx career-ops serve      # Opens http://127.0.0.1:3000
+```
+
+See [`docs/PROVIDERS.md`](docs/PROVIDERS.md) for what works in each CLI and what doesn't.
+
+### Option B — Clone and develop
+
+If you want to hack on the system, change the prompts, add new modes, or run from source:
+
 ```bash
 # 1. Clone and install
 git clone https://github.com/santifer/career-ops.git

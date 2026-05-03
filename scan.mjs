@@ -12,6 +12,7 @@
  * Usage:
  *   node scan.mjs                  # scan all enabled companies
  *   node scan.mjs --dry-run        # preview without writing files
+ *   node scan.mjs --priority       # scan only companies with priority: true
  *   node scan.mjs --company Cohere # scan a single company
  */
 
@@ -188,6 +189,11 @@ function loadSeenCompanyRoles() {
 function appendToPipeline(offers) {
   if (offers.length === 0) return;
 
+  // Create the file with a minimal scaffold if it doesn't exist yet.
+  if (!existsSync(PIPELINE_PATH)) {
+    writeFileSync(PIPELINE_PATH, '# Pipeline\n\n## Pendientes\n\n## Procesadas\n', 'utf-8');
+  }
+
   let text = readFileSync(PIPELINE_PATH, 'utf-8');
 
   // Find "## Pendientes" section and append after it
@@ -252,6 +258,7 @@ async function parallelFetch(tasks, limit) {
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
+  const priorityOnly = args.includes('--priority');
   const companyFlag = args.indexOf('--company');
   const filterCompany = companyFlag !== -1 ? args[companyFlag + 1]?.toLowerCase() : null;
 
@@ -268,13 +275,18 @@ async function main() {
   // 2. Filter to enabled companies with detectable APIs
   const targets = companies
     .filter(c => c.enabled !== false)
+    .filter(c => !priorityOnly || c.priority === true)
     .filter(c => !filterCompany || c.name.toLowerCase().includes(filterCompany))
     .map(c => ({ ...c, _api: detectApi(c) }))
     .filter(c => c._api !== null);
 
-  const skippedCount = companies.filter(c => c.enabled !== false).length - targets.length;
+  const enabledPool = companies
+    .filter(c => c.enabled !== false)
+    .filter(c => !priorityOnly || c.priority === true);
+  const skippedCount = enabledPool.length - targets.length;
 
-  console.log(`Scanning ${targets.length} companies via API (${skippedCount} skipped — no API detected)`);
+  const filterLabel = priorityOnly ? ' (priority only)' : '';
+  console.log(`Scanning ${targets.length} companies via API${filterLabel} (${skippedCount} skipped — no API detected)`);
   if (dryRun) console.log('(dry run — no files will be written)\n');
 
   // 3. Load dedup sets

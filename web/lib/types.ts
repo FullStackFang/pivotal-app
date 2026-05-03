@@ -40,6 +40,18 @@ export type EvalEvent =
   | { type: "done"; runId: string; reportNum?: number }
   | { type: "error"; message: string; tail: string[] };
 
+export interface ScanPosting {
+  url: string;
+  company: string;
+  title: string;
+}
+
+export type ScanEvent =
+  | { type: "started"; runId: string }
+  | { type: "log"; line: string }
+  | { type: "done"; runId: string; newPostings: ScanPosting[] }
+  | { type: "error"; message: string; tail: string[] };
+
 export interface AppFilter {
   status?: string;
   q?: string;

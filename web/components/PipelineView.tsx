@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import type { Application, Report } from "@/lib/types";
 import { PipelineTable } from "./PipelineTable";
 import { Toolbar } from "./Toolbar";
@@ -74,9 +75,16 @@ export function PipelineView({ initialApplications }: { initialApplications: App
               <h3>{apps.length === 0 ? "Empty pipeline" : "Nothing matches"}</h3>
               <p>
                 {apps.length === 0
-                  ? "Paste a job URL on the Evaluate tab — the agent does the rest."
+                  ? "Scan portals to discover jobs, or paste a URL on the Evaluate tab."
                   : "Loosen the filter or clear the search to see the whole list."}
               </p>
+              {apps.length === 0 && (
+                <p style={{ marginTop: 16 }}>
+                  <Link href="/scan" className="btn primary">Scan portals</Link>
+                  {" "}
+                  <Link href="/evaluate" className="btn ghost">Paste a URL</Link>
+                </p>
+              )}
             </div>
           ) : (
             <PipelineTable
