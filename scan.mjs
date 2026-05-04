@@ -36,9 +36,11 @@ const FETCH_TIMEOUT_MS = 10_000;
 // ── API detection ───────────────────────────────────────────────────
 
 function detectApi(company) {
-  // Greenhouse: explicit api field
-  if (company.api && company.api.includes('greenhouse')) {
-    return { type: 'greenhouse', url: company.api };
+  // Explicit api: field — recognize Greenhouse, Ashby, Lever
+  if (company.api) {
+    if (company.api.includes('greenhouse')) return { type: 'greenhouse', url: company.api };
+    if (company.api.includes('ashbyhq.com')) return { type: 'ashby', url: company.api };
+    if (company.api.includes('lever.co')) return { type: 'lever', url: company.api };
   }
 
   const url = company.careers_url || '';
@@ -272,21 +274,24 @@ async function main() {
   const companies = config.tracked_companies || [];
   const titleFilter = buildTitleFilter(config.title_filter);
 
-  // 2. Filter to enabled companies with detectable APIs
-  const targets = companies
-    .filter(c => c.enabled !== false)
+  // 2. Categorize companies into scanned / disabled / unreachable
+  const candidates = companies
     .filter(c => !priorityOnly || c.priority === true)
-    .filter(c => !filterCompany || c.name.toLowerCase().includes(filterCompany))
-    .map(c => ({ ...c, _api: detectApi(c) }))
-    .filter(c => c._api !== null);
+    .filter(c => !filterCompany || c.name.toLowerCase().includes(filterCompany));
 
-  const enabledPool = companies
+  const disabled = candidates.filter(c => c.enabled === false);
+  const enabledCandidates = candidates
     .filter(c => c.enabled !== false)
-    .filter(c => !priorityOnly || c.priority === true);
-  const skippedCount = enabledPool.length - targets.length;
+    .map(c => ({ ...c, _api: detectApi(c) }));
+  const targets = enabledCandidates.filter(c => c._api !== null);
+  const unreachable = enabledCandidates.filter(c => c._api === null);
 
   const filterLabel = priorityOnly ? ' (priority only)' : '';
-  console.log(`Scanning ${targets.length} companies via API${filterLabel} (${skippedCount} skipped — no API detected)`);
+  console.log(`Scanning ${targets.length} companies via API${filterLabel} — disabled: ${disabled.length}, unreachable: ${unreachable.length}`);
+  if (unreachable.length > 0) {
+    console.log('Unreachable (no detectable Greenhouse/Ashby/Lever API — set `api:` or `enabled: false`):');
+    for (const c of unreachable) console.log(`  • ${c.name} (${c.careers_url || 'no careers_url'})`);
+  }
   if (dryRun) console.log('(dry run — no files will be written)\n');
 
   // 3. Load dedup sets

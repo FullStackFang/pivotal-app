@@ -35,6 +35,17 @@ export function setString(doc: Document, path: DocPath, value: string): void {
   doc.setIn(path, value);
 }
 
+export function getBoolean(doc: Document, path: DocPath): boolean {
+  const v = doc.getIn(path, false);
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return v.toLowerCase() === "true";
+  return false;
+}
+
+export function setBoolean(doc: Document, path: DocPath, value: boolean): void {
+  doc.setIn(path, value);
+}
+
 export function getStringList(doc: Document, path: DocPath): string[] {
   const node = doc.getIn(path, true);
   if (!node || !isSeq(node)) return [];
@@ -52,8 +63,12 @@ export function setStringList(doc: Document, path: DocPath, values: ReadonlyArra
   doc.setIn(path, values.slice());
 }
 
+/** Field value type within an object-list row. Strings + booleans cover the
+ *  current schema kinds; numbers are accepted on read but not yet rendered. */
+export type FieldValue = string | boolean | number;
+
 export interface ObjectListItem {
-  [field: string]: string;
+  [field: string]: FieldValue;
 }
 
 export function getObjectList(
@@ -74,12 +89,13 @@ export function getObjectList(
     const row: ObjectListItem = {};
     for (const f of fields) {
       const v = map.get(f, false);
-      row[f] =
-        typeof v === "string"
-          ? v
-          : v == null
-          ? ""
-          : String(v);
+      if (typeof v === "string" || typeof v === "boolean" || typeof v === "number") {
+        row[f] = v;
+      } else if (v == null) {
+        row[f] = "";
+      } else {
+        row[f] = String(v);
+      }
     }
     out.push(row);
   }
@@ -92,11 +108,17 @@ export function setObjectList(
   fields: ReadonlyArray<string>,
   rows: ReadonlyArray<ObjectListItem>,
 ): void {
-  // Use plain JS arrays of plain objects — yaml handles serialization.
-  // Field order is preserved by iterating the schema's `fields` order.
+  // Use plain JS arrays of plain objects — yaml handles serialization. Field
+  // order is preserved by iterating the schema's `fields` order. Empty
+  // optional strings get omitted from the output so the YAML stays clean
+  // (instead of writing `notes: ""` for every row that doesn't use notes).
   const out = rows.map((row) => {
-    const o: Record<string, string> = {};
-    for (const f of fields) o[f] = row[f] ?? "";
+    const o: Record<string, FieldValue> = {};
+    for (const f of fields) {
+      const v = row[f];
+      if (v === undefined) continue;
+      o[f] = v;
+    }
     return o;
   });
   doc.setIn(path, out);

@@ -1,0 +1,157 @@
+// Schema for portals.yml — the scanner configuration that drives
+// `/career-ops scan`. Three top-level keys: title_filter, search_queries,
+// tracked_companies.
+
+import type { Schema } from "./yamlForm";
+
+export const PORTALS_SCHEMA: Schema = [
+  {
+    key: "title_filter",
+    label: "Title filter",
+    description: "Keywords used to decide if a posting title is relevant. At least one positive must match AND zero negatives must match (case-insensitive).",
+    fields: [
+      {
+        key: "title_filter.positive",
+        kind: "list-string",
+        label: "Positive keywords",
+        itemLabel: "Keyword",
+        tooltip: "Keywords that mark a title as a fit. Use specific role names (e.g. 'AI Engineer'), seniority isn't required here. Case-insensitive.",
+        example: "AI Engineer",
+        placeholder: "e.g. Solutions Architect",
+        minItems: 1,
+      },
+      {
+        key: "title_filter.negative",
+        kind: "list-string",
+        label: "Negative keywords",
+        itemLabel: "Keyword",
+        tooltip: "If any of these match the title, the posting is filtered out. Use to exclude tech stacks or seniority levels you don't want.",
+        example: "Junior",
+        placeholder: "e.g. Intern",
+      },
+      {
+        key: "title_filter.seniority_boost",
+        kind: "list-string",
+        label: "Seniority boost",
+        itemLabel: "Keyword",
+        tooltip: "These prefixes raise relevance but aren't required. Useful for ranking titles like 'Senior X' above 'X' when both pass the filter.",
+        example: "Senior",
+        placeholder: "e.g. Director",
+      },
+    ],
+  },
+  {
+    key: "search_queries",
+    label: "Search queries",
+    description: "WebSearch queries the scanner runs on every sweep. Use `site:` filters to scope to specific portals.",
+    fields: [
+      {
+        key: "search_queries",
+        kind: "list-object",
+        label: "Queries",
+        itemLabel: "Query",
+        tooltip: "Each entry triggers a WebSearch. Disable instead of delete when iterating — the history of what you tried is useful.",
+        fields: [
+          {
+            key: "name",
+            kind: "string",
+            label: "Name",
+            placeholder: "Greenhouse — AI Engineer",
+            tooltip: "Short label for the query. Shows up in scan logs.",
+            example: "Greenhouse — AI PM",
+          },
+          {
+            key: "query",
+            kind: "text",
+            label: "Query",
+            placeholder: 'site:boards.greenhouse.io "AI Engineer" remote',
+            tooltip: "The literal search string. Use site: to scope, quotes for exact-match phrases, OR for alternatives.",
+            example: 'site:jobs.ashbyhq.com "AI Engineer" OR "LLM Engineer" remote',
+          },
+          {
+            key: "enabled",
+            kind: "boolean",
+            label: "Enabled",
+            tooltip: "When off, the query is kept in the file but skipped on scan.",
+            example: "ON",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "tracked_companies",
+    label: "Tracked companies",
+    description: "Companies the scanner monitors directly. Prefer the branded careers URL when available; ATS-hosted URLs are a fallback.",
+    fields: [
+      {
+        key: "tracked_companies",
+        kind: "list-object",
+        label: "Companies",
+        itemLabel: "Company",
+        tooltip: "Each entry is one company. Greenhouse boards can also have an `api` URL for structured fetching, otherwise the scanner falls back to Playwright on the careers_url.",
+        fields: [
+          {
+            key: "name",
+            kind: "string",
+            label: "Company",
+            placeholder: "Anthropic",
+            tooltip: "Display name. Shows in scan output and tracker rows.",
+            example: "OpenAI",
+          },
+          {
+            key: "careers_url",
+            kind: "url",
+            label: "Careers URL",
+            placeholder: "https://...",
+            tooltip: "Branded careers page (preferred) or ATS-hosted URL (fallback). The scanner Playwrights this URL.",
+            example: "https://openai.com/careers",
+          },
+          {
+            key: "api",
+            kind: "url",
+            label: "Greenhouse API",
+            placeholder: "https://boards-api.greenhouse.io/v1/boards/<slug>/jobs",
+            tooltip: "Optional structured-API URL when the company uses Greenhouse. Faster than Playwright when available.",
+            example: "https://boards-api.greenhouse.io/v1/boards/anthropic/jobs",
+            optional: true,
+          },
+          {
+            key: "scan_method",
+            kind: "select",
+            label: "Scan method override",
+            options: ["", "websearch"],
+            tooltip: "Force a non-default scan method. Empty = use Playwright/api. 'websearch' = use a Google query instead.",
+            example: "websearch",
+            optional: true,
+          },
+          {
+            key: "scan_query",
+            kind: "text",
+            label: "Scan query (when websearch)",
+            placeholder: 'site:openai.com/careers "Solutions" OR "Forward Deployed"',
+            tooltip: "Used only when scan_method is 'websearch'. The literal query the scanner sends.",
+            example: 'site:openai.com/careers "AI Engineer"',
+            optional: true,
+          },
+          {
+            key: "notes",
+            kind: "text",
+            label: "Notes",
+            placeholder: "NYC. Voice AI for enterprise.",
+            tooltip: "Free-form context — geography, focus area, anything that helps you remember why this company is on the list.",
+            example: "Berlin EMEA. Voice AI enterprise.",
+            optional: true,
+          },
+          {
+            key: "enabled",
+            kind: "boolean",
+            label: "Enabled",
+            tooltip: "When off, the company is kept in the file but skipped on scan. Better than deleting if you might re-enable later.",
+            example: "ON",
+          },
+        ],
+      },
+    ],
+  },
+];

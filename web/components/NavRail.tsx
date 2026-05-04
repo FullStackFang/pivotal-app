@@ -55,9 +55,22 @@ export function NavRail({ counts }: { counts: { pipeline: number } }) {
     return () => { cancelled = true; };
   }, [pathname]);
 
-  const item = (label: string, href: string, badge?: string, badgeKind?: BadgeKind) => (
-    <Link key={href} href={href} className={`rail-link ${isActive(href) ? "is-active" : ""}`}>
-      <span>{label}</span>
+  const item = (
+    label: string,
+    href: string,
+    blurb: string,
+    shortcut?: string,
+    badge?: string,
+    badgeKind?: BadgeKind,
+  ) => (
+    <Link
+      key={href}
+      href={href}
+      className={`rail-link ${isActive(href) ? "is-active" : ""}`}
+      title={blurb}
+    >
+      <span className="rail-link-label">{label}</span>
+      {shortcut && <span className="rail-link-shortcut" aria-hidden>{shortcut}</span>}
       {badge && (
         <span
           className={`badge ${badgeKind === "live" ? "badge-live" : ""} ${badgeKind === "warn" ? "badge-warn" : ""}`}
@@ -74,15 +87,48 @@ export function NavRail({ counts }: { counts: { pipeline: number } }) {
       {item(
         "Profile",
         "/profile",
+        "Identity, CV, narrative, proof points, scan portals — every input the agent reads.",
+        "P",
         setupNeeded > 0 ? String(setupNeeded) : undefined,
         setupNeeded > 0 ? "warn" : "muted",
       )}
-      <div className="group group-spaced"><h6>Workspace</h6></div>
-      {item("Pipeline",     "/",         String(counts.pipeline))}
-      {item("Scan",         "/scan",     scanRunning ? "•" : undefined, scanRunning ? "live" : "muted")}
-      {item("Evaluate URL", "/evaluate")}
-      {item("Runs",         "/runs",     liveRuns > 0 ? String(liveRuns) : undefined, liveRuns > 0 ? "live" : "muted")}
-      {item("Reports",      "/reports")}
+      <div className="group group-spaced"><h6>Discover</h6></div>
+      {item(
+        "Scan",
+        "/scan",
+        "Automated portal sweep. Pulls fresh postings from the companies and queries you've configured.",
+        "S",
+        scanRunning ? "•" : undefined,
+        scanRunning ? "live" : "muted",
+      )}
+      {item(
+        "Evaluate URL",
+        "/evaluate",
+        "Paste a single job URL to get an A–G evaluation. Use when you've found something off-portal.",
+        "E",
+      )}
+      <div className="group group-spaced"><h6>Track</h6></div>
+      {item(
+        "Pipeline",
+        "/",
+        "Every application you've evaluated. Filter, sort, and update status here.",
+        "H",
+        String(counts.pipeline),
+      )}
+      {item(
+        "Runs",
+        "/runs",
+        "In-progress evaluations. Watch live output, kill, or re-run.",
+        "U",
+        liveRuns > 0 ? String(liveRuns) : undefined,
+        liveRuns > 0 ? "live" : "muted",
+      )}
+      {item(
+        "Reports",
+        "/reports",
+        "Completed evaluation reports. The full A–G breakdown for each role.",
+        "R",
+      )}
     </nav>
   );
 }

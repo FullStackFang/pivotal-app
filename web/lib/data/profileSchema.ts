@@ -1,61 +1,13 @@
 // Schema-driven form definition for config/profile.yml.
 // Each section/field carries the metadata the UI needs (label, hint, example)
 // so the form can render itself without sprinkling copy through components.
+//
+// Types live in `yamlForm.ts` so other YAML files (portals, etc.) can reuse
+// the same renderer with their own schemas.
 
-export type FieldKind =
-  | "string"
-  | "text"        // multiline
-  | "url"
-  | "email"
-  | "select";
+import type { Schema } from "./yamlForm";
 
-export interface ScalarField {
-  key: string;            // e.g. "candidate.full_name"
-  kind: FieldKind;
-  label: string;
-  placeholder?: string;
-  tooltip: string;        // shown on hover/focus
-  example: string;        // rendered as ghost text or below the input
-  options?: ReadonlyArray<string>;  // for select
-  optional?: boolean;
-}
-
-export interface ObjectField {
-  key: string;
-  label: string;
-  fields: ReadonlyArray<ScalarField>;
-}
-
-export interface StringListField {
-  key: string;
-  kind: "list-string";
-  label: string;
-  itemLabel: string;      // e.g. "Role title"
-  tooltip: string;
-  example: string;
-  placeholder?: string;
-  minItems?: number;
-}
-
-export interface ObjectListField {
-  key: string;
-  kind: "list-object";
-  label: string;
-  itemLabel: string;
-  tooltip: string;
-  fields: ReadonlyArray<ScalarField>;
-}
-
-export type AnyField = ScalarField | ObjectField | StringListField | ObjectListField;
-
-export interface SchemaSection {
-  key: string;            // top-level yaml key
-  label: string;
-  description: string;
-  fields: ReadonlyArray<AnyField>;
-}
-
-export const PROFILE_SCHEMA: ReadonlyArray<SchemaSection> = [
+export const PROFILE_SCHEMA: Schema = [
   {
     key: "candidate",
     label: "Candidate",

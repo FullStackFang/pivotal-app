@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { FileEditor } from "./FileEditor";
 import { ProfileEditor } from "./ProfileEditor";
 import { CvEditor } from "./CvEditor";
+import { PortalsEditor } from "./PortalsEditor";
 
 export interface UserFileMeta {
   key: string;
@@ -146,8 +147,8 @@ export function ProfileView({ initialFiles }: Props) {
           onDirtyChange={onActiveDirty}
         />
       )}
-      {active && active.key !== "profile" && active.key !== "cv" && (
-        <FileEditor
+      {active && active.key === "portals" && (
+        <PortalsEditor
           key={active.key}
           fileKey={active.key}
           meta={active}
@@ -155,6 +156,18 @@ export function ProfileView({ initialFiles }: Props) {
           onDirtyChange={onActiveDirty}
         />
       )}
+      {active &&
+        active.key !== "profile" &&
+        active.key !== "cv" &&
+        active.key !== "portals" && (
+          <FileEditor
+            key={active.key}
+            fileKey={active.key}
+            meta={active}
+            onSaved={onActiveSaved}
+            onDirtyChange={onActiveDirty}
+          />
+        )}
     </div>
   );
 }
