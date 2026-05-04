@@ -1439,12 +1439,16 @@
   }
 
   /* ─── Settings page ────────────────────────────────────────── */
+  /* The profile route is the only place in the app where document-style
+     scroll wins over the fixed-shell layout. The pipeline view is dense and
+     table-shaped — it benefits from the locked viewport. The profile page is
+     long-form authoring and needs to breathe. Scope the override to `main`
+     when it's hosting the profile page so other routes are untouched. */
+  main:has(.profile-page) { overflow-y: auto; }
   .profile-page {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
+    min-height: 100%;
   }
   .profile-page .head { padding: 32px 32px 16px; border-bottom: 1px solid var(--line-soft); }
   .profile-head-row {
@@ -1486,6 +1490,10 @@
     border-bottom: 1px solid var(--line);
     background: var(--bg-deep);
     overflow-x: auto;
+    /* Tabs sit just under the page head and stay anchored as the form scrolls. */
+    position: sticky;
+    top: 0;
+    z-index: 8;
   }
   .profile-tab {
     appearance: none;
@@ -1544,11 +1552,10 @@
 
   /* ─── Editor ───────────────────────────────────────────────── */
   .editor {
-    flex: 1;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    overflow: hidden;
-    min-height: 0;
+    /* Block flow inside a scrollable parent — header, toolbar, body, and
+       footer all stack naturally and the page handles the scroll. */
+    display: flex;
+    flex-direction: column;
   }
   .editor-head {
     padding: 24px 32px 18px;
@@ -1635,17 +1642,13 @@
   .editor-body {
     display: grid;
     grid-template-columns: 1fr;
-    overflow: hidden;
-    min-height: 0;
   }
   .editor-body:has(.editor-hints) { grid-template-columns: minmax(0, 1fr) 280px; }
   .editor-main {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    min-height: 0;
-    padding: 16px 32px 0;
-    gap: 12px;
+    padding: 20px 32px 32px;
+    gap: 14px;
   }
 
   .editor-banner {
@@ -1703,24 +1706,26 @@
   }
 
   .editor-area {
-    flex: 1;
-    min-height: 0;
     width: 100%;
+    /* `field-sizing: content` lets the textarea grow with content in modern
+       browsers; the React ref-based effect handles older engines. The
+       min-height keeps a comfortable canvas even for short documents. */
+    field-sizing: content;
+    min-height: 60vh;
     appearance: none;
     background: var(--bg-deep);
     border: 1px solid var(--line);
     border-radius: var(--r-md);
-    padding: 18px 22px;
-    margin-bottom: 16px;
+    padding: 22px 26px;
     color: var(--ink);
     font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 12.5px;
-    line-height: 1.65;
+    font-size: 13px;
+    line-height: 1.7;
     letter-spacing: 0.01em;
-    resize: none;
+    resize: vertical;
     outline: none;
-    white-space: pre;
-    overflow: auto;
+    white-space: pre-wrap;
+    overflow: hidden; /* prevents the inner scrollbar — page scroll takes over */
     tab-size: 2;
     transition: border-color 200ms cubic-bezier(0.25, 1, 0.5, 1);
   }
@@ -1730,10 +1735,9 @@
   }
   .editor-area.fmt-markdown {
     font-family: var(--font-body), ui-sans-serif, sans-serif;
-    font-size: 14px;
+    font-size: 14.5px;
     line-height: 1.7;
     letter-spacing: 0;
-    white-space: pre-wrap;
   }
 
   .editor-hints {
@@ -1797,7 +1801,15 @@
     justify-content: space-between;
     gap: 16px;
     padding: 12px 32px;
-    background: var(--bg);
+    /* Pin to viewport bottom while editing — save/revert always reachable
+       however far the form scrolls. The slight blur keeps long content
+       readable behind the bar without losing the typographic background. */
+    position: sticky;
+    bottom: 0;
+    z-index: 9;
+    background: oklch(0.165 0.012 60 / 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-top: 1px solid var(--line);
   }
   .editor-foot-actions { display: flex; gap: 8px; align-items: center; }
@@ -1899,6 +1911,13 @@
     gap: 12px;
     padding: 10px 32px 0;
   }
+  .editor-toolbar-spacer { flex: 1; }
+  .editor-toolbar .btn { padding: 6px 14px; font-size: 12px; }
+  .editor-banner .btn.ghost {
+    margin-left: auto;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
   .view-toggle {
     display: inline-flex;
     border: 1px solid var(--line);
@@ -1926,11 +1945,9 @@
   }
   .view-toggle-btn + .view-toggle-btn { border-left: 1px solid var(--line); }
 
-  .editor-body-form { overflow: auto; }
-  .editor-body-form .editor-main {
-    overflow: visible;
-    padding: 16px 32px 32px;
-  }
+  /* Form-mode body inherits the standard editor-main padding now that the
+     parent isn't a flex/overflow container. */
+  .editor-body-form .editor-main { padding: 20px 32px 32px; }
 
   .editor-loading {
     color: var(--ink-3);
@@ -1945,14 +1962,17 @@
     align-items: start;
   }
   .profile-form-nav {
+    /* Stick under the sticky tabs row (~52px) plus a little breathing room. */
     position: sticky;
-    top: 0;
+    top: 60px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 8px 0;
+    padding: 8px 16px 8px 0;
     border-right: 1px solid var(--line-soft);
-    padding-right: 16px;
+    align-self: start;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
   }
   .profile-form-nav-item {
     padding: 6px 10px;
@@ -2046,7 +2066,13 @@
     border-color: var(--ember);
     box-shadow: 0 0 0 1px var(--ember-soft);
   }
-  .field-textarea { resize: vertical; min-height: 60px; }
+  .field-textarea {
+    resize: vertical;
+    min-height: 72px;
+    /* Grow with content in modern engines; fall back to manual resize
+       elsewhere. The component's row count is a baseline only. */
+    field-sizing: content;
+  }
   .field-select {
     appearance: none;
     background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),

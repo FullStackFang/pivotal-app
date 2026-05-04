@@ -2,6 +2,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { FileEditor } from "./FileEditor";
 import { ProfileEditor } from "./ProfileEditor";
+import { CvEditor } from "./CvEditor";
 
 export interface UserFileMeta {
   key: string;
@@ -136,7 +137,16 @@ export function ProfileView({ initialFiles }: Props) {
           onDirtyChange={onActiveDirty}
         />
       )}
-      {active && active.key !== "profile" && (
+      {active && active.key === "cv" && (
+        <CvEditor
+          key={active.key}
+          fileKey={active.key}
+          meta={active}
+          onSaved={onActiveSaved}
+          onDirtyChange={onActiveDirty}
+        />
+      )}
+      {active && active.key !== "profile" && active.key !== "cv" && (
         <FileEditor
           key={active.key}
           fileKey={active.key}
